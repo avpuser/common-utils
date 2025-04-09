@@ -15,6 +15,7 @@ public class DateUtils {
     public static String formatDateTime(Instant instant, String pattern) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
         LocalDateTime localDateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
+
         return localDateTime.format(formatter);
     }
 
