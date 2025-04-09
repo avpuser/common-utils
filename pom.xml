@@ -7,6 +7,7 @@
     <groupId>org.example</groupId>
     <artifactId>common-utils</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>23</maven.compiler.source>
@@ -75,12 +76,6 @@
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>1.19.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-            <version>1.13.0</version>
         </dependency>
 
         <!-- Поддержка java.time (JSR-310) для Jackson -->
