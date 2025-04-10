@@ -8,11 +8,12 @@ import java.nio.charset.StandardCharsets;
 public class ResourceFileUtils {
 
     public static String getTestResourceFilePath(Class<?> clazz, String fileName) {
-        String path = clazz.getProtectionDomain().getCodeSource().getLocation().getPath().replace("target/test-classes", "src/test/java/resources");
+        String resourceRoot = "src/test/resources/";
+        String projectRoot = new File("").getAbsolutePath();
+        String fullPath = projectRoot + File.separator + resourceRoot + fileName;
 
-        return path + fileName.replace("%20", " ");
+        return fullPath.replace("%20", " ");
     }
-
 
     public static String getFilePath(Class<?> clazz, String fileName) {
         String path = clazz.getProtectionDomain().getCodeSource().getLocation().getPath().replace("target/classes", "src/main/java");
