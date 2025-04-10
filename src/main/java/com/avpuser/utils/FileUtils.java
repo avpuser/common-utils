@@ -161,6 +161,36 @@ public class FileUtils {
         return true;
     }
 
+    public static String sanitizeFileName(String russianTitle, FileNameType nameType) {
+        if (russianTitle == null || russianTitle.isBlank()) {
+            return "empty_file_name";
+        }
+
+        // Transliteration of Russian characters into English
+        if (nameType.equals(FileNameType.TRANSLITERATE)) {
+            russianTitle = transliterate(russianTitle).trim();
+        }
+        russianTitle = russianTitle.trim();
+
+        // Replace spaces with underscores
+        russianTitle = russianTitle.replaceAll(" ", "_");
+
+        // remove special characters and spaces, leaving only letters and numbers
+        String sanitizedTitle = russianTitle.replaceAll("[^a-zA-Zа-яА-Я0-9_]", "");
+
+        // Limiting the length of the file name
+        if (sanitizedTitle.length() > MAX_FILE_NAME_LENGTH) {
+            sanitizedTitle = sanitizedTitle.substring(0, MAX_FILE_NAME_LENGTH);
+        }
+
+        // Remove the underscore at the end of the line if it is there
+        if (sanitizedTitle.endsWith("_")) {
+            sanitizedTitle = sanitizedTitle.substring(0, sanitizedTitle.length() - 1);
+        }
+
+        return sanitizedTitle;
+    }
+
     private static String transliterate(String russianText) {
         String[][] alphabet = {{"а", "a"}, {"б", "b"}, {"в", "v"}, {"г", "g"}, {"д", "d"}, {"е", "e"},
                 {"ё", "yo"}, {"ж", "zh"}, {"з", "z"}, {"и", "i"}, {"й", "y"}, {"к", "k"},
