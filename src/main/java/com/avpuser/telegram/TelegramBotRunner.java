@@ -1,4 +1,4 @@
-package com.avpuser.telegram_api;
+package com.avpuser.telegram;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

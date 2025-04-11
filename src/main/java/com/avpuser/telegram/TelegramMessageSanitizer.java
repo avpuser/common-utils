@@ -1,4 +1,4 @@
-package com.avpuser.telegram_api;
+package com.avpuser.telegram;
 
 import com.avpuser.utils.HtmlSanitizer;
 
