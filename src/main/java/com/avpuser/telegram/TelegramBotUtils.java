@@ -13,7 +13,7 @@ import java.util.Optional;
 public class TelegramBotUtils {
 
     public static Optional<Long> getChatId(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
+        if (update.hasMessage()) {
             return Optional.of(update.getMessage().getChatId());
         }
 
