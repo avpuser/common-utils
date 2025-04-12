@@ -6,5 +6,9 @@ public interface ProgressListener {
 
     void onComplete(String message);            // Called when processing is complete
 
+    default void onComplete() {
+        onComplete("");
+    }            // Called when processing is complete
+
     void onError(String error);   // Called in case of an error
 }
