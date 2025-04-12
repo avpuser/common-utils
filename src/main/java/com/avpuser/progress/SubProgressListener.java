@@ -35,11 +35,11 @@ public class SubProgressListener implements ProgressListener {
     }
 
     @Override
-    public void onComplete() {
+    public void onComplete(String message) {
         parent.onProgress(endPercent); // Progress to 100% at the end
 
         if (endPercent == 100) {
-            parent.onComplete();          // Completing the parent
+            parent.onComplete(message);          // Completing the parent
         }
     }
 

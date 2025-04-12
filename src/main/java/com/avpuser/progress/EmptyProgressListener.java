@@ -8,7 +8,7 @@ public class EmptyProgressListener implements ProgressListener {
     }
 
     @Override
-    public void onComplete() {
+    public void onComplete(String message) {
 
     }
 
