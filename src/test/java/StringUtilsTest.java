@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class StringUtilsTest  {
+public class StringUtilsTest {
 
     @Test
     public void abbreviateTest() {
@@ -140,6 +140,5 @@ public class StringUtilsTest  {
 
         return sb.toString();
     }
-
 
 }
