@@ -45,6 +45,7 @@ public class TelegramBotUtils {
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }
+
         return file.getFilePath();
     }
 
