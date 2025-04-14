@@ -13,6 +13,17 @@ public class GptResponseParser {
 
     private final static Logger logger = LogManager.getLogger(GptResponseParser.class);
 
+    public static String extractContentAsJsonString(String jsonResponse) {
+        String content = extractContentAsString(jsonResponse);
+        if (content == null) {
+            return "";
+        }
+
+        return content.replace("```json", "")
+                .replace("```", "").trim();
+    }
+
+
     public static String extractContentAsString(String jsonResponse) {
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -31,12 +42,13 @@ public class GptResponseParser {
     }
 
     public static <T> List<T> extractContentAsList(String aiAnswer, Class<T> clazz) {
-        return JsonUtils.deserializeJsonToList(extractContentAsString(aiAnswer), clazz);
+        String jsonString = extractContentAsJsonString(aiAnswer);
+        return JsonUtils.deserializeJsonToList(jsonString, clazz);
     }
 
     public static <T> T extractContentAsObject(String aiAnswer, Class<T> clazz) {
-        String content = extractContentAsString(aiAnswer);
-        return JsonUtils.deserializeJsonToObject(content, clazz);
+        String jsonString = extractContentAsJsonString(aiAnswer);
+        return JsonUtils.deserializeJsonToObject(jsonString, clazz);
     }
 
 }
