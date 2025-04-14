@@ -23,6 +23,12 @@
             <version>v3-rev222-1.25.0</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.github.pemistahl/lingua -->
+        <dependency>
+            <groupId>com.github.pemistahl</groupId>
+            <artifactId>lingua</artifactId>
+            <version>1.2.2</version>
+        </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
         <dependency>
