@@ -10,15 +10,21 @@ import java.util.Optional;
 
 public class LanguageUtils {
 
-    protected static final Logger logger = LogManager.getLogger(LanguageUtils.class);
+    private static final Logger logger = LogManager.getLogger(LanguageUtils.class);
+
+    private static final int MAX_TEXT_LEN = 1_000;
 
     private static final LanguageDetector detector = LanguageDetectorBuilder
-            .fromAllLanguages()
+            .fromLanguages(Language.RUSSIAN, Language.ENGLISH)
             .build();
 
     public static Optional<Language> detectLanguage(String text) {
         try {
-            Language lang = detector.detectLanguageOf(text);
+            if (text == null || text.isBlank()) {
+                return Optional.empty();
+            }
+            String shortText = text.length() > MAX_TEXT_LEN ? text.substring(0, MAX_TEXT_LEN) : text;
+            Language lang = detector.detectLanguageOf(shortText);
             if (lang == Language.UNKNOWN) {
                 return Optional.empty();
             }
