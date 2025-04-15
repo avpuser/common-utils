@@ -4,13 +4,9 @@ import java.util.Random;
 
 public class TextGenerator {
 
-    private static final String[] RUSSIAN_WORDS = {
-            "привет", "мир", "язык", "русский", "машина", "текст", "пример", "код", "разработка", "анализ", "детектор"
-    };
+    private static final String[] RUSSIAN_WORDS = {"привет", "мир", "язык", "русский", "машина", "текст", "пример", "код", "разработка", "анализ", "детектор"};
 
-    private static final String[] ENGLISH_WORDS = {
-            "hello", "world", "language", "russian", "machine", "text", "example", "code", "development", "analysis", "detector"
-    };
+    private static final String[] ENGLISH_WORDS = {"hello", "world", "language", "russian", "machine", "text", "example", "code", "development", "analysis", "detector"};
 
     public static String generateLongText(Language language, int targetLength) {
         String[] words;
