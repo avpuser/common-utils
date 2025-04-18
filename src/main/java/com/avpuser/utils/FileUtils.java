@@ -20,9 +20,9 @@ import java.util.List;
 
 public class FileUtils {
 
-    private final static int MAX_FILE_NAME_LENGTH = 150;
-
     private static final Logger logger = LogManager.getLogger(FileUtils.class);
+
+    private final static int MAX_FILE_NAME_LENGTH = 150;
 
     public static long fileSize(String filePath) {
         File file = new File(filePath);

@@ -1,11 +1,14 @@
 package com.avpuser.telegram;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -134,5 +137,29 @@ public class TelegramHttpUtils {
             throw new RuntimeException("Failed to send audio", e);
         }
     }
+
+    public static void sendSimpleJsonPost(String url, String jsonPayload) {
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpPost post = new HttpPost(url);
+            post.setHeader("Content-Type", "application/json");
+            post.setEntity(new StringEntity(jsonPayload, StandardCharsets.UTF_8));
+
+            try (CloseableHttpResponse response = client.execute(post)) {
+                String responseBody = EntityUtils.toString(response.getEntity());
+                logger.info("Telegram API response from {}: {}", url, responseBody);
+
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonResponse = objectMapper.readTree(responseBody);
+
+                if (!jsonResponse.get("ok").asBoolean()) {
+                    throw new RuntimeException("Telegram API error: " + jsonResponse);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Telegram API POST request failed for URL: " + url, e);
+            throw new RuntimeException(e);
+        }
+    }
+
 
 }

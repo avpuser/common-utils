@@ -1,5 +1,6 @@
 package com.avpuser.telegram;
 
+import com.avpuser.utils.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
@@ -151,5 +152,22 @@ public class TelegramBotApi {
         }
     }
 
+    public void setMyName(String name) {
+        String url = baseApiUrl + "setMyName";
+        String json = "{\"name\": \"" + JsonUtils.escapeJson(name) + "\"}";
+        TelegramHttpUtils.sendSimpleJsonPost(url, json);
+    }
+
+    public void setMyDescription(String description) {
+        String url = baseApiUrl + "setMyDescription";
+        String json = "{\"description\": \"" + JsonUtils.escapeJson(description) + "\"}";
+        TelegramHttpUtils.sendSimpleJsonPost(url, json);
+    }
+
+    public void setMyShortDescription(String shortDescription) {
+        String url = baseApiUrl + "setMyShortDescription";
+        String json = "{\"short_description\": \"" + JsonUtils.escapeJson(shortDescription) + "\"}";
+        TelegramHttpUtils.sendSimpleJsonPost(url, json);
+    }
 
 }

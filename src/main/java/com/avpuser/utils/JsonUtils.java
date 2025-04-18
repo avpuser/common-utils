@@ -4,11 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.Map;
 
 public class JsonUtils {
+
+    private static final Logger logger = LogManager.getLogger(FileUtils.class);
 
     private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
@@ -45,4 +49,14 @@ public class JsonUtils {
         }
     }
 
+    public static String escapeJson(String value) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            // сериализует строку в безопасный JSON-формат (включая кавычки!)
+            return mapper.writeValueAsString(value).replaceAll("^\"|\"$", ""); // убираем внешние кавычки
+        } catch (Exception e) {
+            logger.error("Failed to escape JSON value: " + value, e);
+            throw new RuntimeException(e);
+        }
+    }
 }
