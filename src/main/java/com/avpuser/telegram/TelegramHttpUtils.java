@@ -161,5 +161,27 @@ public class TelegramHttpUtils {
         }
     }
 
+    public static String getFieldFromTelegramResponse(String url, String fieldName) {
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpPost post = new HttpPost(url);
+            post.setHeader("Content-Type", "application/json");
+            post.setEntity(new StringEntity("{}", StandardCharsets.UTF_8)); // пустое тело
+
+            try (CloseableHttpResponse response = client.execute(post)) {
+                String responseBody = EntityUtils.toString(response.getEntity());
+
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode jsonResponse = mapper.readTree(responseBody);
+
+                if (!jsonResponse.get("ok").asBoolean()) {
+                    throw new RuntimeException("Telegram API error: " + jsonResponse);
+                }
+
+                return jsonResponse.path("result").path(fieldName).asText("");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get " + fieldName + " from Telegram API", e);
+        }
+    }
 
 }

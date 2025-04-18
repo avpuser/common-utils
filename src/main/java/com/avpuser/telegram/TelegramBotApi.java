@@ -170,4 +170,19 @@ public class TelegramBotApi {
         TelegramHttpUtils.sendSimpleJsonPost(url, json);
     }
 
+    public String getMyName() {
+        String url = baseApiUrl + "getMyName";
+        return TelegramHttpUtils.getFieldFromTelegramResponse(url, "name");
+    }
+
+    public String getMyDescription() {
+        String url = baseApiUrl + "getMyDescription";
+        return TelegramHttpUtils.getFieldFromTelegramResponse(url, "description");
+    }
+
+    public String getMyShortDescription() {
+        String url = baseApiUrl + "getMyShortDescription";
+        return TelegramHttpUtils.getFieldFromTelegramResponse(url, "short_description");
+    }
+
 }
