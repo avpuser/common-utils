@@ -152,10 +152,21 @@ public class TelegramHttpUtils {
                 JsonNode jsonResponse = objectMapper.readTree(responseBody);
 
                 if (!jsonResponse.get("ok").asBoolean()) {
+                    int errorCode = jsonResponse.path("error_code").asInt(-1);
+                    String description = jsonResponse.path("description").asText("Unknown error");
+
+                    if (errorCode == 429) {
+                        int retryAfter = jsonResponse.path("parameters").path("retry_after").asInt(0);
+                        throw new TelegramRateLimitException(description, retryAfter);
+                    }
+
                     throw new RuntimeException("Telegram API error: " + jsonResponse);
                 }
             }
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            throw e;
+        }
+        catch (Exception e) {
             logger.error("Telegram API POST request failed for URL: " + url, e);
             throw new RuntimeException(e);
         }

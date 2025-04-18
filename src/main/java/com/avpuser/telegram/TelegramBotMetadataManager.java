@@ -72,6 +72,9 @@ public class TelegramBotMetadataManager {
 
             setter.accept(newValue);
             logger.info("New telegram bot {}: {}", fieldName, newValue);
+        } catch (TelegramRateLimitException e1) {
+            logger.warn("Telegram rate limit reached while updating {}. Retry after {} seconds. Intended value: \"{}\"",
+                    fieldName, e1.getRetryAfterSeconds(), newValue);
         } catch (RuntimeException e) {
             logger.error("Error during set telegram " + fieldName, e);
         }
