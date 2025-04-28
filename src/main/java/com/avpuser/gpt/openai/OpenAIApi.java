@@ -1,5 +1,6 @@
 package com.avpuser.gpt.openai;
 
+import com.avpuser.gpt.GptResponseParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
@@ -70,6 +71,10 @@ public class OpenAIApi {
         if (response.statusCode() != 200) {
             logger.error("Error API OpenAI. Code: " + response.statusCode() + ", response: " + body);
             throw new RuntimeException("Error API OpenAI: " + response.statusCode());
+        }
+
+        if (GptResponseParser.isResponseCutOff(body)) {
+            logger.error("Response from ai is cut off.");
         }
 
         logger.info("Response body: " + body);

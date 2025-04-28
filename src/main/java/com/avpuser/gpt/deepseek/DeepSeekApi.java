@@ -1,7 +1,9 @@
 package com.avpuser.gpt.deepseek;
 
+import com.avpuser.gpt.GptResponseParser;
 import com.avpuser.progress.EmptyProgressListener;
 import com.avpuser.progress.ProgressListener;
+import com.avpuser.utils.JsonUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
@@ -113,6 +115,9 @@ public class DeepSeekApi {
         }
 
         logger.info("Response body: " + body);
+        if (GptResponseParser.isResponseCutOff(body)) {
+            logger.error("Response from ai is cut off.");
+        }
 
         progressListener.onProgress(99);
         return body;
