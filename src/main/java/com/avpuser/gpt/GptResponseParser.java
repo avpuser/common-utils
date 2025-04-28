@@ -19,10 +19,12 @@ public class GptResponseParser {
             return "";
         }
 
-        return content.replace("```json", "")
-                .replace("```", "").trim();
-    }
+        if (isResponseCutOff(jsonResponse)) {
+            logger.error("Response from ai is cut off.");
+        }
 
+        return content.replace("```json", "").replace("```", "").trim();
+    }
 
     public static String extractContentAsString(String jsonResponse) {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -51,4 +53,15 @@ public class GptResponseParser {
         return JsonUtils.deserializeJsonToObject(jsonString, clazz);
     }
 
+    public static boolean isResponseCutOff(String jsonResponse) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            JsonNode rootNode = objectMapper.readTree(jsonResponse);
+            JsonNode finishReasonNode = rootNode.path("choices").get(0).path("finish_reason");
+            return finishReasonNode.asText().equals("length");
+        } catch (JsonProcessingException e) {
+            logger.warn("Failed to parse finish_reason", e);
+            return false;
+        }
+    }
 }
