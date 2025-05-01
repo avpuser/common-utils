@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 
 public class ResourceFileUtils {
 
-    public static String getTestResourceFilePath(Class<?> clazz, String fileName) {
+    public static String getTestResourceFilePath(String fileName) {
         String resourceRoot = "src/test/resources/";
         String projectRoot = new File("").getAbsolutePath();
         String fullPath = projectRoot + File.separator + resourceRoot + fileName;
@@ -21,12 +21,12 @@ public class ResourceFileUtils {
         return (path + (clazz.getPackageName()).replace(".", "/") + "/" + fileName).replace("%20", " ");
     }
 
-    public static String readTestFile(Class<?> clazz, String fileName) {
-        String filePath = getTestResourceFilePath(clazz, fileName);
+    public static String readTestFile(String fileName) {
+        String filePath = getTestResourceFilePath(fileName);
         StringBuilder sb = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             for (String line; (line = br.readLine()) != null; ) {
-                if (line.length() > 0) {
+                if (!line.isEmpty()) {
                     sb.append(line).append("\n");
                 }
             }
@@ -37,16 +37,16 @@ public class ResourceFileUtils {
         return sb.toString();
     }
 
-    public static String readFile(Class<?> clazz, String fileName) {
-        String filePath = getTestResourceFilePath(clazz, fileName);
+    public static String readFile(String fileName) {
+        String filePath = getTestResourceFilePath(fileName);
         if (FileUtils.fileExists(filePath)) {
-            return readFromFile(clazz, fileName);
+            return readFromFile(fileName);
         }
         return readFileFromResource(fileName);
     }
 
-    private static String readFromFile(Class<?> clazz, String fileName) {
-        String filePath = getTestResourceFilePath(clazz, fileName);
+    private static String readFromFile(String fileName) {
+        String filePath = getTestResourceFilePath(fileName);
         StringBuilder sb = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             for (String line; (line = br.readLine()) != null; ) {
@@ -77,6 +77,15 @@ public class ResourceFileUtils {
         }
 
         return sb.toString();
+    }
+
+    public static String getResourceFilePath(String resourcePath) {
+        try {
+            ClassPathResource resource = new ClassPathResource(resourcePath);
+            return resource.getFile().getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to resolve resource path: " + resourcePath, e);
+        }
     }
 
 }
