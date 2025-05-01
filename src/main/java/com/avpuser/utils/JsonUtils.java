@@ -1,25 +1,23 @@
 package com.avpuser.utils;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 public class JsonUtils {
 
     private static final Logger logger = LogManager.getLogger(FileUtils.class);
 
-    private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS, true);
 
     public static <T> T deserializeJsonToObject(String json, Class<T> clazz) {
         try {
@@ -56,13 +54,11 @@ public class JsonUtils {
 
     public static String escapeJson(String value) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
             // сериализует строку в безопасный JSON-формат (включая кавычки!)
-            return mapper.writeValueAsString(value).replaceAll("^\"|\"$", ""); // убираем внешние кавычки
+            return objectMapper.writeValueAsString(value).replaceAll("^\"|\"$", ""); // убираем внешние кавычки
         } catch (Exception e) {
             logger.error("Failed to escape JSON value: " + value, e);
             throw new RuntimeException(e);
         }
     }
-
 }
