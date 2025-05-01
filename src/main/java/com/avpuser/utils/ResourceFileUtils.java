@@ -15,12 +15,6 @@ public class ResourceFileUtils {
         return fullPath.replace("%20", " ");
     }
 
-    public static String getFilePath(Class<?> clazz, String fileName) {
-        String path = clazz.getProtectionDomain().getCodeSource().getLocation().getPath().replace("target/classes", "src/main/java");
-
-        return (path + (clazz.getPackageName()).replace(".", "/") + "/" + fileName).replace("%20", " ");
-    }
-
     public static String readTestFile(String fileName) {
         String filePath = getTestResourceFilePath(fileName);
         StringBuilder sb = new StringBuilder();
