@@ -19,25 +19,23 @@ public class IndexMetaUtil {
     }
 
     public static List<IndexMeta> generateAllIndexMeta() {
+        Set<Method> methods = ReflectionsUtils.getStaticNoArgAnnotatedMethods(IndexMetaGenerator.class);
         List<IndexMeta> indexMetas = new ArrayList<>();
-        Set<Class<? extends LimitSpecification>> classes = findClassesExtendingLimitSpecification();
 
-        for (Class<?> clazz : classes) {
-            for (Method method : clazz.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(IndexMetaGenerator.class) &&
-                        method.getReturnType() == IndexMeta.class &&
-                        method.getParameterCount() == 0 &&
-                        Modifier.isStatic(method.getModifiers())) {
+        for (Method method : methods) {
+            if (method.getReturnType() == IndexMeta.class &&
+                    method.getParameterCount() == 0 &&
+                    Modifier.isStatic(method.getModifiers())) {
 
-                    try {
-                        IndexMeta indexMeta = (IndexMeta) method.invoke(null);
-                        indexMetas.add(indexMeta);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+                try {
+                    IndexMeta indexMeta = (IndexMeta) method.invoke(null);
+                    indexMetas.add(indexMeta);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to invoke IndexMetaGenerator method: " + method, e);
                 }
             }
         }
+
         return indexMetas;
     }
 }
