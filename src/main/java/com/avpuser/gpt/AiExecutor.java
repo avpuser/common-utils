@@ -43,36 +43,37 @@ public class AiExecutor {
     public String execCompletions(String userInput, String systemContext, ProgressListener progressListener) {
         progressListener.onProgress(5);
 
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        AtomicBoolean completed = new AtomicBoolean(false);
-        AtomicInteger progress = new AtomicInteger(5);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            AtomicBoolean completed = new AtomicBoolean(false);
+            AtomicInteger progress = new AtomicInteger(5);
 
-        Future<?> progressFuture = executor.submit(() -> {
-            try {
-                while (!completed.get() && progress.get() < 99) {
-                    progressListener.onProgress(progress.getAndAdd(1));
-                    Thread.sleep(1_000);
+            Future<?> progressFuture = executor.submit(() -> {
+                try {
+                    while (!completed.get() && progress.get() < 99) {
+                        progressListener.onProgress(progress.getAndAdd(1));
+                        Thread.sleep(1_000);
+                    }
+                } catch (InterruptedException ignored) {
                 }
-            } catch (InterruptedException ignored) {
+            });
+
+            Future<String> responseFuture = executor.submit(() -> {
+                return aiProvider == AIProvider.OPENAI
+                        ? openAiApi.execCompletions(userInput, systemContext, openAIModel)
+                        : deepSeekApi.execCompletions(userInput, systemContext, deepSeekModel);
+            });
+
+            try {
+                String response = responseFuture.get();
+                completed.set(true);
+                progressFuture.cancel(true);
+                progressListener.onProgress(99);
+                return response;
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException("Error waiting for AI response", e);
+            } finally {
+                executor.shutdownNow();
             }
-        });
-
-        Future<String> responseFuture = executor.submit(() -> {
-            return aiProvider == AIProvider.OPENAI
-                    ? openAiApi.execCompletions(userInput, systemContext, openAIModel)
-                    : deepSeekApi.execCompletions(userInput, systemContext, deepSeekModel);
-        });
-
-        try {
-            String response = responseFuture.get();
-            completed.set(true);
-            progressFuture.cancel(true);
-            progressListener.onProgress(99);
-            return response;
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Error waiting for AI response", e);
-        } finally {
-            executor.shutdownNow();
         }
     }
 
