@@ -1,4 +1,4 @@
-package com.avpuser.text_extract;
+package com.avpuser.textextraction;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;

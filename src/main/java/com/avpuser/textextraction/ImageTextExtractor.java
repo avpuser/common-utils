@@ -1,4 +1,4 @@
-package com.avpuser.text_extract;
+package com.avpuser.textextraction;
 
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
