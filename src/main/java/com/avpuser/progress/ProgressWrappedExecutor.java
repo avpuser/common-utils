@@ -1,6 +1,4 @@
-package com.avpuser.utils;
-
-import com.avpuser.progress.ProgressListener;
+package com.avpuser.progress;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;

@@ -1,7 +1,7 @@
 package com.avpuser.gpt;
 
 import com.avpuser.progress.ProgressListener;
-import com.avpuser.utils.ProgressWrappedExecutor;
+import com.avpuser.progress.ProgressWrappedExecutor;
 
 public class AiWithProgressExecutor {
 

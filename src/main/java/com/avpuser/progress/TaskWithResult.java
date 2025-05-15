@@ -1,4 +1,4 @@
-package com.avpuser.utils;
+package com.avpuser.progress;
 
 @FunctionalInterface
 public interface TaskWithResult<T> {
