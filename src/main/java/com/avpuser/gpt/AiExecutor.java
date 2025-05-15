@@ -37,7 +37,7 @@ public class AiExecutor {
      */
     public <TRequest, TResponse> TResponse executeAndExtractContent(TRequest request, String systemContext, Class<TResponse> responseClass) {
         String userInput = JsonUtils.toJson(request);
-        String aiResponse = executeAndExtractContent(userInput, systemContext);
+        String aiResponse = JsonUtils.stripJsonCodeBlock(executeAndExtractContent(userInput, systemContext));
         return JsonUtils.deserializeJsonToObject(aiResponse, responseClass);
     }
 

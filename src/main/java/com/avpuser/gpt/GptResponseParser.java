@@ -14,12 +14,7 @@ public class GptResponseParser {
     private final static Logger logger = LogManager.getLogger(GptResponseParser.class);
 
     public static String extractContentAsJsonString(String jsonResponse) {
-        String content = extractContentAsString(jsonResponse);
-        if (content == null) {
-            return "";
-        }
-
-        return content.replace("```json", "").replace("```", "").trim();
+        return JsonUtils.stripJsonCodeBlock(extractContentAsString(jsonResponse));
     }
 
     public static String extractContentAsString(String jsonResponse) {

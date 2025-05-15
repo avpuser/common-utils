@@ -61,4 +61,11 @@ public class JsonUtils {
             throw new RuntimeException(e);
         }
     }
+
+    public static String stripJsonCodeBlock(String content) {
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+        return content.replace("```json", "").replace("```", "").trim();
+    }
 }
