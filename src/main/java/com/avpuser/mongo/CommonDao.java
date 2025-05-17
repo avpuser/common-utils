@@ -67,10 +67,16 @@ public class CommonDao<T extends DbEntity> {
     public final Optional<T> findById(String id) {
         Optional<T> entity = Optional.ofNullable(mongoCollection.findOneById(id));
         if (entity.isEmpty()) {
-            logger.info("Did not find " + getDbEntityName() + " with id: " + id);
+            logger.info("Entity of type " + getDbEntityName() + " not found for id: " + id);
         }
         return entity;
     }
+
+    public T findByIdOrThrow(String id) {
+        return findById(id).orElseThrow(() ->
+                new IllegalArgumentException("Entity of type " + getDbEntityName() + " not found for id: " + id));
+    }
+
 
     public final List<T> findByIds(List<String> ids) {
         logger.info("Find" + getDbEntityName() + " by ids: " + ids);

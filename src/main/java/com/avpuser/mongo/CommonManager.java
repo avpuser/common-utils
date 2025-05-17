@@ -37,6 +37,10 @@ public abstract class CommonManager<T extends DbEntity> {
         return dao.findById(id);
     }
 
+    public T findByIdOrThrow(String id) {
+        return dao.findByIdOrThrow(id);
+    }
+
     public List<T> findByIds(List<String> ids) {
         return dao.findByIds(ids);
     }
