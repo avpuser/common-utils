@@ -26,10 +26,10 @@ public class MongoCollectionValidator {
         }
     }
 
-    private static String toSnakeCase(String name) {
-        return name
-                .replaceAll("([a-z])([A-Z])", "$1_$2")
-                .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
+    private static String toSnakeCase(String input) {
+        return input
+                .replaceAll("(?<=[a-z0-9])([A-Z])", "_$1") // добавляет _ перед заглавной буквой, если перед ней строчная или цифра
+                .replaceAll("(?<=[A-Z])([A-Z][a-z])", "_$1") // разделяет ABBc → AB_Bc
                 .toLowerCase();
     }
 }
