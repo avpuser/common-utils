@@ -22,11 +22,6 @@ public class CommonDao<T extends DbEntity> {
     protected final JacksonMongoCollection<T> mongoCollection;
 
     private final Class<T> type;
-
-    protected String getDbEntityName() {
-        return type.getSimpleName();
-    }
-
     private final Clock clock;
 
     public CommonDao(MongoDatabase database, Class<T> type, Clock clock) {
@@ -36,7 +31,11 @@ public class CommonDao<T extends DbEntity> {
         this.clock = clock;
     }
 
-    public final void insert(T entity) {
+    protected String getDbEntityName() {
+        return type.getSimpleName();
+    }
+
+    public final String insert(T entity) {
         Instant now = clock.instant();
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(now);
@@ -46,6 +45,7 @@ public class CommonDao<T extends DbEntity> {
         }
         mongoCollection.insert(entity);
         logger.info(getDbEntityName() + " saved successfully. " + entity);
+        return entity.getId();
     }
 
     public final void update(T entity) {

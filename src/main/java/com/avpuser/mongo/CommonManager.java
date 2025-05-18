@@ -25,8 +25,8 @@ public abstract class CommonManager<T extends DbEntity> {
         this(DaoRegistryUtil.getDao(allDaos, type), type);
     }
 
-    public void insert(T entity) {
-        dao.insert(entity);
+    public String insert(T entity) {
+        return dao.insert(entity);
     }
 
     public void update(T entity) {
