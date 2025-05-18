@@ -1,0 +1,35 @@
+package com.avpuser.mongo;
+
+import com.avpuser.utils.ReflectionsUtils;
+import org.mongojack.MongoCollection;
+
+import java.util.Set;
+
+public class MongoCollectionValidator {
+
+    public static void validate() {
+        Set<Class<? extends DbEntity>> classes = ReflectionsUtils.getSubTypesOf(DbEntity.class);
+
+        for (Class<?> clazz : classes) {
+            MongoCollection annotation = clazz.getAnnotation(MongoCollection.class);
+            if (annotation == null) {
+                throw new IllegalStateException("Missing @MongoCollection on " + clazz.getName());
+            }
+
+            String expected = toSnakeCase(clazz.getSimpleName());
+            String actual = annotation.name();
+
+            if (!expected.equals(actual)) {
+                throw new IllegalStateException("Incorrect @MongoCollection name for class " + clazz.getName()
+                        + ". Expected: " + expected + ", but found: " + actual);
+            }
+        }
+    }
+
+    private static String toSnakeCase(String name) {
+        return name
+                .replaceAll("([a-z])([A-Z])", "$1_$2")
+                .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
+                .toLowerCase();
+    }
+}
