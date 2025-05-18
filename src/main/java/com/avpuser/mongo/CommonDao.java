@@ -1,6 +1,7 @@
 package com.avpuser.mongo;
 
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.DeleteResult;
 import org.apache.logging.log4j.LogManager;
@@ -17,7 +18,7 @@ import java.util.Optional;
 
 public class CommonDao<T extends DbEntity> {
 
-    protected final static Logger logger = LogManager.getLogger(CommonDao.class);
+    private final static Logger logger = LogManager.getLogger(CommonDao.class);
 
     protected final JacksonMongoCollection<T> mongoCollection;
 
@@ -107,9 +108,17 @@ public class CommonDao<T extends DbEntity> {
 
         Bson filter = specification.filter();
 
+        Optional<Collation> collationO = specification.collation();
+
         List<T> result = new ArrayList<>();
-        for (T entity : mongoCollection.find(filter).sort(specification.sort()).limit(specification.getLimit())) {
-            result.add(entity);
+        if (collationO.isEmpty()) {
+            for (T entity : mongoCollection.find(filter).sort(specification.sort()).limit(specification.getLimit())) {
+                result.add(entity);
+            }
+        } else {
+            for (T entity : mongoCollection.find(filter).collation(collationO.get()).sort(specification.sort()).limit(specification.getLimit())) {
+                result.add(entity);
+            }
         }
         return result;
     }
