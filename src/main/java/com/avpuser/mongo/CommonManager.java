@@ -25,6 +25,11 @@ public abstract class CommonManager<T extends DbEntity> {
         this(DaoRegistryUtil.getDao(allDaos, type), type);
     }
 
+    public CommonManager(CommonDao<T> dao) {
+        this.dao = dao;
+        this.type = dao.getType();
+    }
+
     public String insert(T entity) {
         return dao.insert(entity);
     }
@@ -73,6 +78,8 @@ public abstract class CommonManager<T extends DbEntity> {
         return dao.count();
     }
 
+    public final Optional<T> findBySpecificationOne(LimitSpecification specification) {
+        return dao.findBySpecificationOne(specification);
+    }
 
 }
-

@@ -24,6 +24,11 @@ public class CommonDao<T extends DbEntity> {
     private final Class<T> type;
     private final Clock clock;
 
+    public final Class<T> getType() {
+        return type;
+    }
+
+
     public CommonDao(MongoDatabase database, Class<T> type, Clock clock) {
         mongoCollection = JacksonMongoCollection.builder().build(database, type,
                 UuidRepresentation.STANDARD);
