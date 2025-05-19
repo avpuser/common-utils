@@ -11,6 +11,10 @@ public class MongoCollectionValidator {
         Set<Class<? extends DbEntity>> classes = ReflectionsUtils.getSubTypesOf(DbEntity.class);
 
         for (Class<?> clazz : classes) {
+            if (clazz.isAnnotationPresent(SkipMongoCollectionValidation.class)) {
+                continue; // Skip validation for explicitly marked classes
+            }
+
             MongoCollection annotation = clazz.getAnnotation(MongoCollection.class);
             if (annotation == null) {
                 throw new IllegalStateException("Missing @MongoCollection on " + clazz.getName());
