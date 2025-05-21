@@ -71,6 +71,9 @@ public class CommonDao<T extends DbEntity> {
     }
 
     public final Optional<T> findById(String id) {
+        if (id == null) {
+            return Optional.empty();
+        }
         Optional<T> entity = Optional.ofNullable(mongoCollection.findOneById(id));
         if (entity.isEmpty()) {
             logger.info("Entity of type " + getDbEntityName() + " not found for id: " + id);
