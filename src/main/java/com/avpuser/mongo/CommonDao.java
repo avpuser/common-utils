@@ -1,5 +1,7 @@
 package com.avpuser.mongo;
 
+import com.avpuser.mongo.typeconverter.ObjectMapperFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
@@ -12,6 +14,7 @@ import org.mongojack.JacksonMongoCollection;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,16 +28,18 @@ public class CommonDao<T extends DbEntity> {
     private final Class<T> type;
     private final Clock clock;
 
-    public final Class<T> getType() {
-        return type;
-    }
-
-
     public CommonDao(MongoDatabase database, Class<T> type, Clock clock) {
-        mongoCollection = JacksonMongoCollection.builder().build(database, type,
-                UuidRepresentation.STANDARD);
         this.type = type;
         this.clock = clock;
+
+        ObjectMapper objectMapper = ObjectMapperFactory.createObjectMapper();
+        this.mongoCollection = JacksonMongoCollection.builder()
+                .withObjectMapper(objectMapper)
+                .build(database, type, UuidRepresentation.STANDARD);
+    }
+
+    public final Class<T> getType() {
+        return type;
     }
 
     protected String getDbEntityName() {
@@ -43,6 +48,7 @@ public class CommonDao<T extends DbEntity> {
 
     public final String insert(T entity) {
         Instant now = clock.instant();
+
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(now);
         }
