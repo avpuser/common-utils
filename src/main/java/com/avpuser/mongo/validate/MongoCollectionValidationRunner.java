@@ -1,4 +1,4 @@
-package com.avpuser.mongo;
+package com.avpuser.mongo.validate;
 
 import com.avpuser.env.Environment;
 import org.springframework.stereotype.Component;

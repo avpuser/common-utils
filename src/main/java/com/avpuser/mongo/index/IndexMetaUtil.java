@@ -1,5 +1,6 @@
-package com.avpuser.mongo;
+package com.avpuser.mongo.index;
 
+import com.avpuser.mongo.LimitSpecification;
 import com.avpuser.utils.ReflectionsUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

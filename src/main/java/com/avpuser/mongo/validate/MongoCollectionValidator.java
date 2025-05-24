@@ -1,5 +1,6 @@
-package com.avpuser.mongo;
+package com.avpuser.mongo.validate;
 
+import com.avpuser.mongo.DbEntity;
 import com.avpuser.utils.ReflectionsUtils;
 import org.mongojack.MongoCollection;
 

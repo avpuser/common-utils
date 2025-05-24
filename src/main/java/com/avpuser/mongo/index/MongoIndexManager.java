@@ -1,4 +1,4 @@
-package com.avpuser.mongo;
+package com.avpuser.mongo.index;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
