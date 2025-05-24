@@ -1,6 +1,6 @@
 package com.avpuser.mongo;
 
-import com.avpuser.mongo.typeconverter.ObjectMapperFactory;
+import com.avpuser.mongo.typeconverter.MongoObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Collation;
@@ -14,7 +14,6 @@ import org.mongojack.JacksonMongoCollection;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +31,7 @@ public class CommonDao<T extends DbEntity> {
         this.type = type;
         this.clock = clock;
 
-        ObjectMapper objectMapper = ObjectMapperFactory.createObjectMapper();
+        ObjectMapper objectMapper = MongoObjectMapperFactory.createObjectMapper();
         this.mongoCollection = JacksonMongoCollection.builder()
                 .withObjectMapper(objectMapper)
                 .build(database, type, UuidRepresentation.STANDARD);
