@@ -1,5 +1,6 @@
 package com.avpuser.gpt.deepseek;
 
+import com.avpuser.gpt.AIModel;
 import com.avpuser.gpt.GptResponseParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +25,7 @@ public class DeepSeekApi {
         this.client = HttpClient.newHttpClient();
     }
 
-    public String execCompletions(String userInput, String systemContext, DeepSeekModel model) {
+    public String execCompletions(String userInput, String systemContext, AIModel model) {
         logger.info("userInput: " + userInput);
         logger.info("systemContext: " + systemContext);
         logger.info("model: " + model.getModelName());

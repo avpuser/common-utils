@@ -21,8 +21,8 @@ public class AiWithProgressExecutor {
      * @param progressListener Listener to report progress updates.
      * @return Deserialized response of type TResponse.
      */
-    public <TRequest, TResponse> TResponse executeAndExtractContent(TRequest request, String systemContext, Class<TResponse> responseClass, ProgressListener progressListener) {
-        return ProgressWrappedExecutor.runWithProgress(() -> aiExecutor.executeAndExtractContent(request, systemContext, responseClass), progressListener);
+    public <TRequest, TResponse> TResponse executeAndExtractContent(TRequest request, String systemContext, Class<TResponse> responseClass, AIModel model, ProgressListener progressListener) {
+        return ProgressWrappedExecutor.runWithProgress(() -> aiExecutor.executeAndExtractContent(request, systemContext, responseClass, model), progressListener);
     }
 
     /**
@@ -35,7 +35,7 @@ public class AiWithProgressExecutor {
      * @param progressListener Listener to report progress updates.
      * @return Extracted content string from the AI's JSON response.
      */
-    public String executeAndExtractContent(String userInput, String systemContext, ProgressListener progressListener) {
-        return ProgressWrappedExecutor.runWithProgress(() -> aiExecutor.executeAndExtractContent(userInput, systemContext), progressListener);
+    public String executeAndExtractContent(String userInput, String systemContext, AIModel model, ProgressListener progressListener) {
+        return ProgressWrappedExecutor.runWithProgress(() -> aiExecutor.executeAndExtractContent(userInput, systemContext, model), progressListener);
     }
 }
