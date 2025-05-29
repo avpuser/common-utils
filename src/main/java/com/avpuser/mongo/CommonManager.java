@@ -1,5 +1,6 @@
 package com.avpuser.mongo;
 
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.result.DeleteResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -7,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public abstract class CommonManager<T extends DbEntity> {
 
@@ -40,6 +42,10 @@ public abstract class CommonManager<T extends DbEntity> {
 
     public Optional<T> findById(String id) {
         return dao.findById(id);
+    }
+
+    public void forEachEntity(Consumer<T> consumer) {
+        dao.forEachEntity(consumer);
     }
 
     public T findByIdOrThrow(String id) {

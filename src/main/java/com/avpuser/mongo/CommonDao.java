@@ -2,6 +2,7 @@ package com.avpuser.mongo;
 
 import com.avpuser.mongo.typeconverter.MongoObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
@@ -17,6 +18,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class CommonDao<T extends DbEntity> {
 
@@ -96,6 +98,15 @@ public class CommonDao<T extends DbEntity> {
         logger.info("Find" + getDbEntityName() + " by ids: " + ids);
         Bson filter = Filters.in("_id", ids);
         return mongoCollection.find(filter).into(new ArrayList<>());
+    }
+
+    public void forEachEntity(Consumer<T> consumer) {
+        try (MongoCursor<T> cursor = mongoCollection.find().iterator()) {
+            while (cursor.hasNext()) {
+                T entity = cursor.next();
+                consumer.accept(entity);
+            }
+        }
     }
 
     public final List<T> findAll() {
