@@ -1,6 +1,6 @@
 package com.avpuser.mongo.promptcache;
 
-import com.avpuser.ai.executor.StringPromptRequest;
+import com.avpuser.ai.AIModel;
 import com.avpuser.mongo.DbEntity;
 import com.avpuser.mongo.validate.SkipMongoCollectionValidation;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -20,13 +20,17 @@ public class PromptCache extends DbEntity {
 
     @Id
     private String id;
-    private StringPromptRequest request;
+    private String request;
     private String response;
+    private String promptType;
+    private AIModel model;
 
-    public PromptCache(String id, StringPromptRequest request, String response) {
+    public PromptCache(String id, String request, String response, String promptType, AIModel model) {
         this.id = id;
         this.request = request;
         this.response = response;
+        this.promptType = promptType;
+        this.model = model;
     }
 
     public PromptCache() {

@@ -2,6 +2,7 @@ import com.avpuser.ai.AIModel;
 import com.avpuser.ai.executor.StringPromptRequest;
 import com.avpuser.mongo.CommonDao;
 import com.avpuser.mongo.promptcache.PromptCache;
+import com.avpuser.mongo.promptcache.PromptCacheKeyUtils;
 import com.avpuser.mongo.promptcache.PromptCacheManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,8 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class PromptCacheManagerTest {
@@ -26,11 +26,13 @@ class PromptCacheManagerTest {
 
     @Test
     void testFindCached_Hit() {
-        StringPromptRequest request = new StringPromptRequest("hello", "ctx", AIModel.GPT_4, null, "type1");
+        StringPromptRequest request = new StringPromptRequest("hello", "sys", AIModel.GPT_4, null, "test_type");
         String expectedResponse = "cached result";
 
-        String id = computeId(request);
-        when(dao.findById(id)).thenReturn(Optional.of(new PromptCache(id, request, expectedResponse)));
+        String id = PromptCacheKeyUtils.buildHashKey(request);
+        PromptCache cached = new PromptCache(id, request.getRequest(), expectedResponse, request.getPromptType(), request.getModel());
+
+        when(dao.findById(id)).thenReturn(Optional.of(cached));
 
         Optional<String> result = manager.findCached(request);
 
@@ -41,9 +43,9 @@ class PromptCacheManagerTest {
 
     @Test
     void testFindCached_Miss() {
-        StringPromptRequest request = new StringPromptRequest("hello", "ctx", AIModel.GPT_4, null, "type1");
+        StringPromptRequest request = new StringPromptRequest("missed", "sys", AIModel.GPT_4, null, "not_found_type");
 
-        String id = computeId(request);
+        String id = PromptCacheKeyUtils.buildHashKey(request);
         when(dao.findById(id)).thenReturn(Optional.empty());
 
         Optional<String> result = manager.findCached(request);
@@ -54,26 +56,19 @@ class PromptCacheManagerTest {
 
     @Test
     void testSave_InsertsPromptCache() {
-        StringPromptRequest request = new StringPromptRequest("input", "ctx", AIModel.GPT_4, null, "typeX");
-        String response = "generated result";
-        String id = computeId(request);
+        StringPromptRequest request = new StringPromptRequest("save this", "sys", AIModel.DEEPSEEK_CHAT, null, "save_type");
+        String response = "generated";
+
+        String id = PromptCacheKeyUtils.buildHashKey(request);
 
         manager.save(request, response);
 
         verify(dao).insert(argThat(pc ->
                 pc.getId().equals(id) &&
+                        pc.getRequest().equals(request.getRequest()) &&
                         pc.getResponse().equals(response) &&
-                        pc.getRequest().getPromptType().equals("typeX")
+                        pc.getPromptType().equals(request.getPromptType()) &&
+                        pc.getModel() == request.getModel()
         ));
-    }
-
-    private String computeId(StringPromptRequest request) {
-        // This should match buildRequestHashKey in PromptCacheManager
-        String base = String.join("::",
-                request.getPromptType(),
-                request.getModel().getModelName(),
-                request.getRequest()
-        );
-        return org.apache.commons.codec.digest.DigestUtils.sha256Hex(base);
     }
 }

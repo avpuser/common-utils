@@ -5,7 +5,6 @@ import com.avpuser.ai.executor.StringPromptRequest;
 import com.avpuser.mongo.CommonDao;
 import com.avpuser.mongo.CommonManager;
 import com.avpuser.mongo.DbEntity;
-import org.apache.commons.codec.digest.DigestUtils;
 
 import java.util.Map;
 import java.util.Optional;
@@ -17,21 +16,21 @@ public class PromptCacheManager extends CommonManager<PromptCache> implements Pr
     }
 
     public Optional<String> findCached(StringPromptRequest request) {
-        String id = buildRequestHashKey(request);
+        String id = PromptCacheKeyUtils.buildHashKey(request);
         return findById(id).map(PromptCache::getResponse);
     }
 
     public void save(StringPromptRequest request, String response) {
-        String id = buildRequestHashKey(request);
-        insert(new PromptCache(id, request, response));
+        String id = PromptCacheKeyUtils.buildHashKey(request);
+        Optional<PromptCache> dbPromptCacheO = findById(id);
+        PromptCache promptCache = new PromptCache(id, request.getRequest(), response, request.getPromptType(), request.getModel());
+        if (dbPromptCacheO.isEmpty()) {
+            insert(promptCache);
+        } else {
+            PromptCache dbPromptCache = dbPromptCacheO.get();
+            dbPromptCache.setResponse(response);
+            update(dbPromptCache);
+        }
     }
 
-    private String buildRequestHashKey(StringPromptRequest request) {
-        String base = String.join("::",
-                request.getPromptType(),
-                request.getModel().getModelName(),
-                request.getRequest()
-        );
-        return DigestUtils.sha256Hex(base);
-    }
 }
