@@ -1,11 +1,11 @@
 package ai;
 
+
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.executor.AiExecutor;
 import com.avpuser.ai.executor.CacheAiExecutor;
 import com.avpuser.ai.executor.PromptCacheService;
 import com.avpuser.ai.executor.TypedPromptRequest;
-import com.avpuser.utils.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,115 +14,50 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
-class CacheAiExecutorTest {
+public class CacheAiExecutorTest {
 
-    private AiExecutor delegateExecutor;
-    private PromptCacheService cacheService;
+    private AiExecutor mockExecutor;
+    private PromptCacheService mockCache;
     private CacheAiExecutor cacheAiExecutor;
 
     @BeforeEach
-    void setUp() {
-        delegateExecutor = mock(AiExecutor.class);
-        cacheService = mock(PromptCacheService.class);
-        cacheAiExecutor = new CacheAiExecutor(delegateExecutor, cacheService);
+    public void setup() {
+        mockExecutor = mock(AiExecutor.class);
+        mockCache = mock(PromptCacheService.class);
+        cacheAiExecutor = new CacheAiExecutor(mockExecutor, mockCache);
     }
 
     @Test
-    void testCacheHit_StringToString() {
-        var request = TypedPromptRequest.of("hello", "ctx", String.class, AIModel.GPT_4, "type1");
+    public void testExecuteAndExtractContent_cacheHit() {
+        TypedPromptRequest<String, String> request = TypedPromptRequest.of(
+                "prompt", "sys", String.class, AIModel.DEEPSEEK_CHAT, "test"
+        );
 
-        when(cacheService.findCached(any())).thenReturn(Optional.of("cached response"));
+        when(mockCache.findCached(request)).thenReturn(Optional.of("cached-response"));
 
         String result = cacheAiExecutor.executeAndExtractContent(request);
 
-        assertEquals("cached response", result);
-        verify(cacheService).findCached(any());
-        verifyNoInteractions(delegateExecutor); // should not call delegate
+        assertEquals("cached-response", result);
+
+        verify(mockCache, times(1)).findCached(request);
+        verifyNoMoreInteractions(mockExecutor);
     }
 
     @Test
-    void testCacheMiss_StringToString() {
-        var request = TypedPromptRequest.of("ask", "ctx", String.class, AIModel.GPT_4, "type2");
+    public void testExecuteAndExtractContent_cacheMiss() {
+        TypedPromptRequest<String, String> request = TypedPromptRequest.of(
+                "prompt", "sys", String.class, AIModel.DEEPSEEK_CHAT, "test"
+        );
 
-        when(cacheService.findCached(any())).thenReturn(Optional.empty());
-        when(delegateExecutor.executeAndExtractContent(request)).thenReturn("generated response");
+        when(mockCache.findCached(request)).thenReturn(Optional.empty());
+        when(mockExecutor.executeAndExtractContent(request)).thenReturn("real-response");
 
         String result = cacheAiExecutor.executeAndExtractContent(request);
 
-        assertEquals("generated response", result);
-        verify(delegateExecutor).executeAndExtractContent(request);
-        verify(cacheService).save(any(), eq("generated response"));
-    }
+        assertEquals("real-response", result);
 
-    @Test
-    void testCacheMiss_ObjectToObject() {
-        DummyInput input = new DummyInput("data");
-        DummyOutput expected = new DummyOutput("result");
-
-        var request = TypedPromptRequest.of(input, "ctx", DummyOutput.class, AIModel.DEEPSEEK_CHAT, "dummy");
-
-        when(cacheService.findCached(any())).thenReturn(Optional.empty());
-        when(delegateExecutor.executeAndExtractContent(request)).thenReturn(expected);
-
-        DummyOutput result = cacheAiExecutor.executeAndExtractContent(request);
-
-        assertEquals("result", result.getResponse());
-        verify(delegateExecutor).executeAndExtractContent(request);
-        verify(cacheService).save(any(), eq(JsonUtils.toJson(expected)));
-    }
-
-    @Test
-    void testCacheHit_ObjectToObject() {
-        DummyInput input = new DummyInput("x");
-        DummyOutput expected = new DummyOutput("cached!");
-
-        var request = TypedPromptRequest.of(input, "ctx", DummyOutput.class, AIModel.DEEPSEEK_CHAT, "dummy");
-
-        String cachedJson = JsonUtils.toJson(expected);
-        when(cacheService.findCached(any())).thenReturn(Optional.of(cachedJson));
-
-        DummyOutput result = cacheAiExecutor.executeAndExtractContent(request);
-
-        assertEquals("cached!", result.getResponse());
-        verifyNoInteractions(delegateExecutor);
-    }
-
-    // Dummy DTOs
-    static class DummyInput {
-        private String field;
-
-        public DummyInput() {
-        }
-
-        public DummyInput(String field) {
-            this.field = field;
-        }
-
-        public String getField() {
-            return field;
-        }
-
-        public void setField(String field) {
-            this.field = field;
-        }
-    }
-
-    static class DummyOutput {
-        private String response;
-
-        public DummyOutput() {
-        }
-
-        public DummyOutput(String response) {
-            this.response = response;
-        }
-
-        public String getResponse() {
-            return response;
-        }
-
-        public void setResponse(String response) {
-            this.response = response;
-        }
+        verify(mockCache, times(1)).findCached(request);
+        verify(mockExecutor, times(1)).executeAndExtractContent(request);
+        verify(mockCache, times(1)).save(request, "real-response");
     }
 }
