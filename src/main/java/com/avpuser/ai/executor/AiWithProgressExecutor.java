@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
  * <p>
  * This class delegates AI prompt execution to an underlying {@link AiExecutor},
  * while ensuring that progress is reported via the {@link com.avpuser.progress.ProgressListener}
- * included in the {@link TypedPromptRequest}.
+ * included in the {@link AiPromptRequest}.
  * </p>
  *
  * <p>Typical use case: enable UI or logging components to receive progress updates
@@ -33,9 +33,8 @@ public class AiWithProgressExecutor implements AiExecutor {
     }
 
     @Override
-    public <TRequest, TResponse> TResponse executeAndExtractContent(TypedPromptRequest<TRequest, TResponse> request) {
+    public String execute(AiPromptRequest request) {
         logger.debug("Executing AI request with progress: {}", request.getPromptType());
-        return ProgressWrappedExecutor.runWithProgress(() -> aiExecutor.executeAndExtractContent(request), request.getProgressListener());
-
+        return ProgressWrappedExecutor.runWithProgress(() -> aiExecutor.execute(request), request.getProgressListener());
     }
 }

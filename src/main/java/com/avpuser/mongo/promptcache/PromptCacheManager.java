@@ -1,12 +1,11 @@
 package com.avpuser.mongo.promptcache;
 
 import com.avpuser.ai.AIModel;
+import com.avpuser.ai.executor.AiPromptRequest;
 import com.avpuser.ai.executor.PromptCacheService;
-import com.avpuser.ai.executor.TypedPromptRequest;
 import com.avpuser.mongo.CommonDao;
 import com.avpuser.mongo.CommonManager;
 import com.avpuser.mongo.DbEntity;
-import com.avpuser.utils.JsonUtils;
 
 import java.util.Map;
 import java.util.Optional;
@@ -17,15 +16,15 @@ public class PromptCacheManager extends CommonManager<PromptCache> implements Pr
         super(allDaos, PromptCache.class);
     }
 
-    private Optional<String> internalFindCached(String request, AIModel model, String promptType) {
-        String id = PromptCacheKeyUtils.buildHashKey(promptType, request, model);
+    private Optional<String> internalFindCached(String userPrompt, String systemPrompt, AIModel model, String promptType) {
+        String id = PromptCacheKeyUtils.buildHashKey(promptType, userPrompt, systemPrompt, model);
         return findById(id).map(PromptCache::getResponse);
     }
 
-    private void internalSave(String request, AIModel model, String promptType, String response) {
-        String id = PromptCacheKeyUtils.buildHashKey(promptType, request, model);
+    private void internalSave(String userPrompt, String systemPrompt, AIModel model, String promptType, String response) {
+        String id = PromptCacheKeyUtils.buildHashKey(promptType, userPrompt, systemPrompt, model);
         Optional<PromptCache> dbPromptCacheO = findById(id);
-        PromptCache promptCache = new PromptCache(id, request, response, promptType, model);
+        PromptCache promptCache = new PromptCache(id, userPrompt, systemPrompt, response, promptType, model);
         if (dbPromptCacheO.isEmpty()) {
             insert(promptCache);
         } else {
@@ -36,30 +35,12 @@ public class PromptCacheManager extends CommonManager<PromptCache> implements Pr
     }
 
     @Override
-    public <TRequest, TResponse> Optional<TResponse> findCached(TypedPromptRequest<TRequest, TResponse> request) {
-        String requestPayload = request.getRequest() instanceof String
-                ? (String) request.getRequest()
-                : JsonUtils.toJson(request.getRequest());
-
-        return internalFindCached(requestPayload, request.getModel(), request.getPromptType()).map(cached -> {
-            if (request.getResponseClass().equals(String.class)) {
-                return (TResponse) cached;
-            } else {
-                return JsonUtils.deserializeJsonToObject(cached, request.getResponseClass());
-            }
-        });
+    public Optional<String> findCached(AiPromptRequest request) {
+        return internalFindCached(request.getUserPrompt(), request.getSystemPrompt(), request.getModel(), request.getPromptType());
     }
 
     @Override
-    public <TRequest, TResponse> void save(TypedPromptRequest<TRequest, TResponse> request, TResponse tResponse) {
-        String requestPayload = request.getRequest() instanceof String
-                ? (String) request.getRequest()
-                : JsonUtils.toJson(request.getRequest());
-
-        String serializedResponse = tResponse instanceof String
-                ? (String) tResponse
-                : JsonUtils.toJson(tResponse);
-
-        internalSave(requestPayload, request.getModel(), request.getPromptType(), serializedResponse);
+    public void save(AiPromptRequest request, String response) {
+        internalSave(request.getUserPrompt(), request.getSystemPrompt(), request.getModel(), request.getPromptType(), response);
     }
 }

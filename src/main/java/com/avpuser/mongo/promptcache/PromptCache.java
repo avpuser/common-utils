@@ -20,14 +20,16 @@ public class PromptCache extends DbEntity {
 
     @Id
     private String id;
-    private String request;
+    private String userPrompt;
+    private String systemPrompt;
     private String response;
     private String promptType;
     private AIModel model;
 
-    public PromptCache(String id, String request, String response, String promptType, AIModel model) {
+    public PromptCache(String id, String userPrompt, String systemPrompt, String response, String promptType, AIModel model) {
         this.id = id;
-        this.request = request;
+        this.userPrompt = userPrompt;
+        this.systemPrompt = systemPrompt;
         this.response = response;
         this.promptType = promptType;
         this.model = model;

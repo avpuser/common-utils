@@ -2,82 +2,70 @@ package ai;
 
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.deepseek.DeepSeekApi;
+import com.avpuser.ai.executor.AiPromptRequest;
 import com.avpuser.ai.executor.DefaultAiExecutor;
-import com.avpuser.ai.executor.TypedPromptRequest;
 import com.avpuser.ai.openai.OpenAIApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DefaultAiExecutorTest {
 
-    private OpenAIApi openAIApi;
+    private OpenAIApi openAiApi;
     private DeepSeekApi deepSeekApi;
     private DefaultAiExecutor executor;
 
     @BeforeEach
-    void setup() {
-        openAIApi = mock(OpenAIApi.class);
+    void setUp() {
+        openAiApi = mock(OpenAIApi.class);
         deepSeekApi = mock(DeepSeekApi.class);
-        executor = new DefaultAiExecutor(openAIApi, deepSeekApi);
+        executor = new DefaultAiExecutor(openAiApi, deepSeekApi);
     }
 
     @Test
-    void testExecuteAndExtractContent_StringToString_OpenAI() {
-        String prompt = "What is the capital of France?";
-        String systemContext = "You are a helpful assistant.";
-        String rawJsonResponse = "{\"choices\":[{\"message\":{\"content\":\"Paris\"}}]}";
+    void shouldExecuteUsingOpenAI() {
+        AiPromptRequest request = AiPromptRequest.of("hello", "system", AIModel.GPT_4, "test");
 
-        AIModel model = AIModel.GPT_4;
+        when(openAiApi.execCompletions("hello", "system", AIModel.GPT_4))
+                .thenReturn("{\"choices\":[{\"message\":{\"content\":\"Hi!\"}}]}");
 
-        when(openAIApi.execCompletions(prompt, systemContext, model)).thenReturn(rawJsonResponse);
+        String result = executor.execute(request);
 
-        TypedPromptRequest<String, String> request = TypedPromptRequest.of(
-                prompt, systemContext, String.class, model, "trivia-capital");
-
-        String result = executor.executeAndExtractContent(request);
-        assertEquals("Paris", result);
-        verify(openAIApi).execCompletions(prompt, systemContext, model);
+        assertEquals("Hi!", result);
+        verify(openAiApi).execCompletions("hello", "system", AIModel.GPT_4);
+        verifyNoInteractions(deepSeekApi);
     }
 
     @Test
-    void testExecuteAndExtractContent_JsonRequestToResponse_DeepSeek() {
-        DummyInput input = new DummyInput("value");
-        String expectedJson = "{\"response\":\"ok\"}";
-        String systemContext = "You are a JSON processor.";
+    void shouldExecuteUsingDeepSeek() {
+        AiPromptRequest request = AiPromptRequest.of("ping", "system", AIModel.DEEPSEEK_CHAT, "test");
 
-        AIModel model = AIModel.DEEPSEEK_CHAT;
+        when(deepSeekApi.execCompletions("ping", "system", AIModel.DEEPSEEK_CHAT))
+                .thenReturn("{\"choices\":[{\"message\":{\"content\":\"pong\"}}]}");
 
-        when(deepSeekApi.execCompletions(anyString(), eq(systemContext), eq(model))).thenReturn(expectedJson);
+        String result = executor.execute(request);
 
-        TypedPromptRequest<DummyInput, DummyOutput> request =  TypedPromptRequest.of(
-                input, systemContext, DummyOutput.class, model, "dummy"
-        );
-
-        DummyOutput result = executor.executeAndExtractContent(request);
-        assertEquals("ok", result.getResponse());
-        verify(deepSeekApi).execCompletions(anyString(), eq(systemContext), eq(model));
+        assertEquals("pong", result);
+        verify(deepSeekApi).execCompletions("ping", "system", AIModel.DEEPSEEK_CHAT);
+        verifyNoInteractions(openAiApi);
     }
 
-    static class DummyInput {
-        public String value;
+    @Test
+    void shouldThrowOnBlankUserPrompt() {
+        AiPromptRequest request = AiPromptRequest.of("  ", "context", AIModel.GPT_4, "test");
 
-        public DummyInput(String value) {
-            this.value = value;
-        }
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> executor.execute(request));
+        assertEquals("userInput", ex.getMessage());
     }
 
-    static class DummyOutput {
-        private String response;
+    @Test
+    void shouldThrowOnBlankSystemPrompt() {
+        AiPromptRequest request = AiPromptRequest.of("question", "   ", AIModel.GPT_4, "test");
 
-        public String getResponse() {
-            return response;
-        }
-
-        public void setResponse(String response) {
-            this.response = response;
-        }
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> executor.execute(request));
+        assertEquals("systemContext", ex.getMessage());
     }
+
 }

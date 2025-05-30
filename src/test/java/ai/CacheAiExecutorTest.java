@@ -1,63 +1,74 @@
 package ai;
 
-
-import com.avpuser.ai.AIModel;
 import com.avpuser.ai.executor.AiExecutor;
+import com.avpuser.ai.executor.AiPromptRequest;
 import com.avpuser.ai.executor.CacheAiExecutor;
 import com.avpuser.ai.executor.PromptCacheService;
-import com.avpuser.ai.executor.TypedPromptRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class CacheAiExecutorTest {
+class CacheAiExecutorTest {
 
-    private AiExecutor mockExecutor;
+    private AiExecutor mockAiExecutor;
     private PromptCacheService mockCache;
-    private CacheAiExecutor cacheAiExecutor;
+    private CacheAiExecutor cacheExecutor;
+    private AiPromptRequest mockRequest;
 
     @BeforeEach
-    public void setup() {
-        mockExecutor = mock(AiExecutor.class);
+    void setUp() {
+        mockAiExecutor = mock(AiExecutor.class);
         mockCache = mock(PromptCacheService.class);
-        cacheAiExecutor = new CacheAiExecutor(mockExecutor, mockCache);
+        cacheExecutor = new CacheAiExecutor(mockAiExecutor, mockCache);
+        mockRequest = mock(AiPromptRequest.class);
     }
 
     @Test
-    public void testExecuteAndExtractContent_cacheHit() {
-        TypedPromptRequest<String, String> request = TypedPromptRequest.of(
-                "prompt", "sys", String.class, AIModel.DEEPSEEK_CHAT, "test"
-        );
+    void shouldReturnCachedValue_WhenCacheHit() {
+        when(mockRequest.getPromptType()).thenReturn("test_prompt");
+        when(mockCache.findCached(mockRequest)).thenReturn(Optional.of("cached-response"));
 
-        when(mockCache.findCached(request)).thenReturn(Optional.of("cached-response"));
-
-        String result = cacheAiExecutor.executeAndExtractContent(request);
+        String result = cacheExecutor.execute(mockRequest);
 
         assertEquals("cached-response", result);
-
-        verify(mockCache, times(1)).findCached(request);
-        verifyNoMoreInteractions(mockExecutor);
+        verify(mockCache).findCached(mockRequest);
+        verify(mockAiExecutor, never()).execute(any());
+        verify(mockCache, never()).save(any(), any());
     }
 
     @Test
-    public void testExecuteAndExtractContent_cacheMiss() {
-        TypedPromptRequest<String, String> request = TypedPromptRequest.of(
-                "prompt", "sys", String.class, AIModel.DEEPSEEK_CHAT, "test"
-        );
+    void shouldCallAiExecutorAndSave_WhenCacheMiss() {
+        when(mockRequest.getPromptType()).thenReturn("missing_prompt");
+        when(mockCache.findCached(mockRequest)).thenReturn(Optional.empty());
+        when(mockAiExecutor.execute(mockRequest)).thenReturn("fresh-response");
 
-        when(mockCache.findCached(request)).thenReturn(Optional.empty());
-        when(mockExecutor.executeAndExtractContent(request)).thenReturn("real-response");
+        String result = cacheExecutor.execute(mockRequest);
 
-        String result = cacheAiExecutor.executeAndExtractContent(request);
-
-        assertEquals("real-response", result);
-
-        verify(mockCache, times(1)).findCached(request);
-        verify(mockExecutor, times(1)).executeAndExtractContent(request);
-        verify(mockCache, times(1)).save(request, "real-response");
+        assertEquals("fresh-response", result);
+        verify(mockCache).findCached(mockRequest);
+        verify(mockAiExecutor).execute(mockRequest);
+        verify(mockCache).save(mockRequest, "fresh-response");
     }
+
+    @Test
+    void shouldThrowException_WhenSaveFails() {
+        when(mockRequest.getPromptType()).thenReturn("error_on_save");
+        when(mockCache.findCached(mockRequest)).thenReturn(Optional.empty());
+        when(mockAiExecutor.execute(mockRequest)).thenReturn("response");
+
+        doThrow(new RuntimeException("save failed"))
+                .when(mockCache).save(mockRequest, "response");
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> cacheExecutor.execute(mockRequest));
+        assertEquals("save failed", ex.getMessage());
+
+        verify(mockCache).findCached(mockRequest);
+        verify(mockAiExecutor).execute(mockRequest);
+        verify(mockCache).save(mockRequest, "response");
+    }
+
 }

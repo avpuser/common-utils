@@ -19,16 +19,16 @@ public class CacheAiExecutor implements AiExecutor {
     }
 
     @Override
-    public <TRequest, TResponse> TResponse executeAndExtractContent(TypedPromptRequest<TRequest, TResponse> request) {
+    public String execute(AiPromptRequest request) {
         return promptCacheService.findCached(request)
                 .map(cached -> {
-                    logger.info("Cache hit for: {}", request.getPromptType());
+                    logger.debug("Cache hit for: {}", request.getPromptType());
                     return cached;
                 })
                 .orElseGet(() -> {
-                    logger.info("Cache miss for: {}", request.getPromptType());
+                    logger.debug("Cache miss for: {}", request.getPromptType());
 
-                    TResponse response = aiExecutor.executeAndExtractContent(request);
+                    String response = aiExecutor.execute(request);
                     promptCacheService.save(request, response);
                     return response;
                 });

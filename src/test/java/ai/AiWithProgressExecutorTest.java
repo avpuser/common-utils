@@ -1,44 +1,65 @@
 package ai;
 
 import com.avpuser.ai.executor.AiExecutor;
+import com.avpuser.ai.executor.AiPromptRequest;
 import com.avpuser.ai.executor.AiWithProgressExecutor;
-import com.avpuser.ai.executor.TypedPromptRequest;
 import com.avpuser.progress.ProgressListener;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AiWithProgressExecutorTest {
 
-    private AiExecutor delegateExecutor;
+    private AiExecutor mockExecutor;
+    private ProgressListener mockProgressListener;
+    private AiPromptRequest mockRequest;
     private AiWithProgressExecutor progressExecutor;
 
     @BeforeEach
     void setUp() {
-        delegateExecutor = mock(AiExecutor.class);
-        progressExecutor = new AiWithProgressExecutor(delegateExecutor);
+        mockExecutor = mock(AiExecutor.class);
+        mockProgressListener = mock(ProgressListener.class);
+        mockRequest = mock(AiPromptRequest.class);
+        progressExecutor = new AiWithProgressExecutor(mockExecutor);
+
+        when(mockRequest.getProgressListener()).thenReturn(mockProgressListener);
     }
 
     @Test
-    void testExecuteAndExtractContent_WithProgressWrapping() {
-        TypedPromptRequest<String, String> request = TypedPromptRequest.of(
-                "Hello", "System", String.class, null, mock(ProgressListener.class), "test"
-        );
+    void shouldDelegateExecutionToWrappedExecutor() {
+        when(mockRequest.getPromptType()).thenReturn("test_prompt");
+        when(mockExecutor.execute(mockRequest)).thenReturn("response");
 
-        when(delegateExecutor.executeAndExtractContent(request)).thenReturn("World");
+        String result = progressExecutor.execute(mockRequest);
 
-        String result = progressExecutor.executeAndExtractContent(request);
-
-        assertEquals("World", result);
-        verify(delegateExecutor).executeAndExtractContent(request);
+        assertEquals("response", result);
+        verify(mockExecutor, times(1)).execute(mockRequest);
+        verify(mockRequest, times(1)).getProgressListener();
     }
 
     @Test
-    void testWrapStaticMethodCreatesInstance() {
-        AiWithProgressExecutor wrapped = AiWithProgressExecutor.wrap(delegateExecutor);
+    void shouldReportProgressDuringExecution() {
+        when(mockExecutor.execute(mockRequest)).thenAnswer(invocation -> {
+            mockProgressListener.onProgress(0);
+            mockProgressListener.onComplete();
+            return "done";
+        });
+
+        when(mockRequest.getPromptType()).thenReturn("progress_test");
+
+        String result = progressExecutor.execute(mockRequest);
+
+        assertEquals("done", result);
+        verify(mockProgressListener).onProgress(0);
+        verify(mockProgressListener).onComplete();
+    }
+
+    @Test
+    void wrapMethodShouldReturnWrappedInstance() {
+        AiWithProgressExecutor wrapped = AiWithProgressExecutor.wrap(mockExecutor);
         assertNotNull(wrapped);
+        assertTrue(wrapped instanceof AiWithProgressExecutor);
     }
 }

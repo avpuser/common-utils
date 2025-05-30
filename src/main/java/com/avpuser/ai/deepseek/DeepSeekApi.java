@@ -12,11 +12,15 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DeepSeekApi {
 
     private final static Logger logger = LogManager.getLogger(DeepSeekApi.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
     private final String apiKey;
     private final HttpClient client;
 
@@ -25,12 +29,12 @@ public class DeepSeekApi {
         this.client = HttpClient.newHttpClient();
     }
 
-    public String execCompletions(String userInput, String systemContext, AIModel model) {
-        logger.info("userInput: " + userInput);
-        logger.info("systemContext: " + systemContext);
+    public String execCompletions(String userPrompt, String systemPrompt, AIModel model) {
+        logger.info("userPrompt: " + userPrompt);
+        logger.info("systemPrompt: " + systemPrompt);
         logger.info("model: " + model.getModelName());
 
-        List<Map<String, Object>> messages = createMessages(userInput, systemContext);
+        List<Map<String, Object>> messages = createMessages(userPrompt, systemPrompt);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model.getModelName());
@@ -38,9 +42,9 @@ public class DeepSeekApi {
 
         String jsonRequestBody;
         try {
-            jsonRequestBody = new ObjectMapper().writeValueAsString(requestBody);
+            jsonRequestBody = mapper.writeValueAsString(requestBody);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Ошибка при создании JSON тела запроса", e);
+            throw new RuntimeException("Error while creating JSON request body", e);
         }
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -71,12 +75,12 @@ public class DeepSeekApi {
         return body;
     }
 
-    private List<Map<String, Object>> createMessages(String userInput, String systemContext) {
+    private List<Map<String, Object>> createMessages(String userInput, String systemPrompt) {
         List<Map<String, Object>> messages = new ArrayList<>();
 
         Map<String, Object> systemMessage = new HashMap<>();
         systemMessage.put("role", "system");
-        systemMessage.put("content", systemContext);
+        systemMessage.put("content", systemPrompt);
         messages.add(systemMessage);
 
         Map<String, Object> userMessage = new HashMap<>();

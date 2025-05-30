@@ -30,29 +30,27 @@ public class OpenAIApi {
         this.client = HttpClient.newHttpClient();
     }
 
-    public String execCompletions(String userInput, String systemContext, AIModel model) {
-        logger.info("userInput: " + userInput);
-        logger.info("systemContext: " + systemContext);
+    public String execCompletions(String userPrompt, String systemPrompt, AIModel model) {
+        logger.info("userPrompt: " + userPrompt);
+        logger.info("systemPrompt: " + systemPrompt);
         logger.info("model: " + model.getModelName());
 
-        // Формирование сообщений
-        List<Map<String, Object>> messages = createMessages(userInput, systemContext);
+        List<Map<String, Object>> messages = createMessages(userPrompt, systemPrompt);
 
-        // Формирование тела запроса
+        // Building the request body
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model.getModelName());
-        requestBody.put("messages", messages);  // Используем сформированные сообщения
+        requestBody.put("messages", messages);
 
-        // Преобразование тела в JSON
+        // Serializing the body to JSON
         ObjectMapper objectMapper = new ObjectMapper();
         String jsonRequestBody;
         try {
             jsonRequestBody = objectMapper.writeValueAsString(requestBody);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Ошибка при создании JSON тела запроса", e);
+            throw new RuntimeException("Error while creating JSON request body", e);
         }
 
-        // Создание HTTP-запроса
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.openai.com/v1/chat/completions"))
                 .header("Content-Type", "application/json")
@@ -60,7 +58,6 @@ public class OpenAIApi {
                 .POST(HttpRequest.BodyPublishers.ofString(jsonRequestBody))
                 .build();
 
-        // Отправка запроса и получение ответа
         HttpResponse<String> response;
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -82,23 +79,20 @@ public class OpenAIApi {
         return body;
     }
 
-    public List<Map<String, Object>> createMessages(String userInput, String systemContext) {
-        // Список сообщений
+    public List<Map<String, Object>> createMessages(String userPrompt, String systemPrompt) {
         List<Map<String, Object>> messages = new ArrayList<>();
 
-        // Сообщение с ролью system
         Map<String, Object> systemMessage = new HashMap<>();
         systemMessage.put("role", "system");
-        systemMessage.put("content", systemContext); // Используем переданный системный контекст
+        systemMessage.put("content", systemPrompt);
         messages.add(systemMessage);
 
         // Сообщение с ролью user
         Map<String, Object> userMessage = new HashMap<>();
         userMessage.put("role", "user");
-        userMessage.put("content", userInput); // Используем введенный текст пользователя
+        userMessage.put("content", userPrompt);
         messages.add(userMessage);
 
         return messages;
     }
 }
-

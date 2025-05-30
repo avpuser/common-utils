@@ -4,7 +4,6 @@ import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AiResponseParser;
 import com.avpuser.ai.deepseek.DeepSeekApi;
 import com.avpuser.ai.openai.OpenAIApi;
-import com.avpuser.utils.JsonUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +23,7 @@ import org.apache.logging.log4j.Logger;
  * <p>This class supports multiple AI providers (e.g., OpenAI, DeepSeek), selected based on the {@link AIModel} configuration.</p>
  *
  * @see AiExecutor
- * @see TypedPromptRequest
+ * @see AiPromptRequest
  * @see OpenAIApi
  * @see DeepSeekApi
  */
@@ -41,31 +40,16 @@ public class DefaultAiExecutor implements AiExecutor {
     }
 
     /**
-     * Serializes the given request object to JSON, sends it to the AI provider along with the system context,
-     * tracks progress, and deserializes the AI response into the specified response class.
-     *
-     * @param request       The request object to be serialized and sent.
-     * @param systemContext The optional system context or prompt instructions.
-     * @param responseClass The target class to deserialize the AI response into.
-     * @return Deserialized response of type TResponse.
-     */
-    private <TRequest, TResponse> TResponse executeAndExtractContent(TRequest request, String systemContext, Class<TResponse> responseClass, AIModel model) {
-        String userInput = JsonUtils.toJson(request);
-        String aiResponse = JsonUtils.stripJsonCodeBlock(logAndExecCompletions(userInput, systemContext, model));
-        return JsonUtils.deserializeJsonToObject(aiResponse, responseClass);
-    }
-
-    /**
      * Sends a raw user input string and system context to the AI provider,
      * executes the completion request in a separate thread, tracks progress in parallel,
      * and returns the extracted textual content from the JSON response.
      *
-     * @param userInput     The raw prompt or input string for the AI.
-     * @param systemContext The optional system context or prompt instructions.
+     * @param userPrompt   The raw prompt or input string for the AI.
+     * @param systemPrompt The optional system context or prompt instructions.
      * @return Extracted content string from the AI's JSON response.
      */
-    private String executeAndExtractContent(String userInput, String systemContext, AIModel model) {
-        String jsonResponse = logAndExecCompletions(userInput, systemContext, model);
+    private String executeWithStringResponse(String userPrompt, String systemPrompt, AIModel model) {
+        String jsonResponse = logAndExecCompletions(userPrompt, systemPrompt, model);
         logger.info("jsonResponse: " + jsonResponse);
         String contentAsString = AiResponseParser.extractContentAsString(jsonResponse);
         logger.info("contentAsString: " + contentAsString);
@@ -90,27 +74,12 @@ public class DefaultAiExecutor implements AiExecutor {
         return switch (model.getProvider()) {
             case OPENAI -> openAiApi.execCompletions(userInput, systemContext, model);
             case DEEPSEEK -> deepSeekApi.execCompletions(userInput, systemContext, model);
+            default -> throw new IllegalArgumentException("Unsupported provider: " + model.getProvider());
         };
     }
 
     @Override
-    public <TRequest, TResponse> TResponse executeAndExtractContent(TypedPromptRequest<TRequest, TResponse> request) {
-        if (request.getRequest() instanceof String && request.getResponseClass() == String.class) {
-            @SuppressWarnings("unchecked")
-            TResponse result = (TResponse) executeAndExtractContent(
-                    (String) request.getRequest(),
-                    request.getSystemContext(),
-                    request.getModel()
-            );
-            return result;
-        }
-
-        return executeAndExtractContent(
-                request.getRequest(),
-                request.getSystemContext(),
-                request.getResponseClass(),
-                request.getModel()
-        );
+    public String execute(AiPromptRequest request) {
+        return executeWithStringResponse(request.getUserPrompt(), request.getSystemPrompt(), request.getModel());
     }
-
 }

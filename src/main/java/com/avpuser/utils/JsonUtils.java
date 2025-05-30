@@ -21,7 +21,7 @@ public class JsonUtils {
 
     public static <T> T deserializeJsonToObject(String json, Class<T> clazz) {
         try {
-            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructType(clazz));
+            return objectMapper.readValue(stripJsonCodeBlock(json), objectMapper.getTypeFactory().constructType(clazz));
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error parsing JSON: ", e);
         }
@@ -29,7 +29,7 @@ public class JsonUtils {
 
     public static <T> List<T> deserializeJsonToList(String json, Class<T> clazz) {
         try {
-            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructCollectionType(List.class, clazz));
+            return objectMapper.readValue(stripJsonCodeBlock(json), objectMapper.getTypeFactory().constructCollectionType(List.class, clazz));
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error parsing JSON: ", e);
         }
@@ -45,7 +45,7 @@ public class JsonUtils {
 
     public static List<Map<String, String>> fromJsonList(String json) {
         try {
-            return objectMapper.readValue(json, new TypeReference<>() {
+            return objectMapper.readValue(stripJsonCodeBlock(json), new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error parsing JSON list of maps: ", e);
