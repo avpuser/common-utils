@@ -57,7 +57,7 @@ class DefaultAiExecutorTest {
         AiPromptRequest request = AiPromptRequest.of("  ", "context", AIModel.GPT_4, "test");
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> executor.execute(request));
-        assertEquals("userInput", ex.getMessage());
+        assertEquals("userPrompt must not be blank", ex.getMessage());
     }
 
     @Test
@@ -65,7 +65,7 @@ class DefaultAiExecutorTest {
         AiPromptRequest request = AiPromptRequest.of("question", "   ", AIModel.GPT_4, "test");
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> executor.execute(request));
-        assertEquals("systemContext", ex.getMessage());
+        assertEquals("systemPrompt must not be blank", ex.getMessage());
     }
 
 }

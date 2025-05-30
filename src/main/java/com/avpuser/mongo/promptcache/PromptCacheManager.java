@@ -10,6 +10,27 @@ import com.avpuser.mongo.DbEntity;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Mongo-based implementation of {@link PromptCacheService} that stores and retrieves
+ * cached AI prompt responses using a generated hash key.
+ *
+ * <p>This class extends {@link CommonManager} to leverage generic MongoDB access logic
+ * and implements {@link PromptCacheService} to provide a typed API for caching prompts.</p>
+ *
+ * <p>Each AI request is uniquely identified by a hash key computed from:</p>
+ * <ul>
+ *   <li>Prompt type (e.g., translation, classification)</li>
+ *   <li>User prompt</li>
+ *   <li>System prompt</li>
+ *   <li>AI model name</li>
+ * </ul>
+ *
+ * <p>Cached entries are stored as {@link PromptCache} documents and either inserted
+ * or updated depending on existence.</p>
+ *
+ * @see PromptCache
+ * @see PromptCacheKeyUtils
+ */
 public class PromptCacheManager extends CommonManager<PromptCache> implements PromptCacheService {
 
     public PromptCacheManager(Map<Class<?>, CommonDao<? extends DbEntity>> allDaos) {

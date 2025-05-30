@@ -6,38 +6,55 @@ import com.avpuser.progress.ProgressListener;
 import lombok.Getter;
 
 /**
- * A typed AI request that includes the input object, target response class, and configuration for execution.
- * Used for JSON-based serialization/deserialization through the AI model.
+ * Represents a typed AI prompt request used for sending structured input to an AI model
+ * along with contextual metadata. This request can be cached, logged, and tracked via progress listeners.
+ * <p>
+ * Each request consists of:
+ * <ul>
+ *     <li>A user-defined input prompt ({@code userPrompt})</li>
+ *     <li>An optional system prompt ({@code systemPrompt}) that guides the AI's behavior</li>
+ *     <li>An {@link AIModel} specifying which AI provider/model to use</li>
+ *     <li>An optional {@link ProgressListener} for tracking execution</li>
+ *     <li>A {@code promptType} label for logging, analytics, or caching</li>
+ * </ul>
+ *
+ * <p>Use {@code AiPromptRequest.of(...)} static methods to create new instances with sensible defaults.</p>
+ *
+ * @see AIModel
+ * @see ProgressListener
+ * @see PromptCacheService
  */
 @Getter
 public class AiPromptRequest {
 
     /**
-     * The input request object that will be serialized to JSON.
+     * The main user-defined prompt to be sent to the AI model.
      */
     private final String userPrompt;
 
     /**
-     * The system context (system prompt) for the AI model.
+     * The optional system-level context that shapes the AI's behavior or tone.
      */
     private final String systemPrompt;
 
     /**
-     * The model used to process the request.
+     * The AI model and provider configuration used to execute the request.
      */
     private final AIModel model;
 
     /**
-     * Optional progress listener for tracking execution state.
+     * An optional listener that receives updates about request progress.
+     * Defaults to {@link EmptyProgressListener} if not provided.
      */
     private final ProgressListener progressListener;
 
     /**
-     * Optional label to help identify this request type in cache/logs.
+     * A custom label identifying the type/category of this prompt.
+     * Useful for caching, logging, or analytical purposes.
      */
     private final String promptType;
 
-    protected AiPromptRequest(String userPrompt, String systemPrompt, AIModel model, ProgressListener progressListener, String promptType) {
+    private AiPromptRequest(String userPrompt, String systemPrompt, AIModel model, ProgressListener progressListener, String promptType) {
         this.userPrompt = userPrompt;
         this.systemPrompt = systemPrompt;
         this.model = model;
@@ -45,11 +62,29 @@ public class AiPromptRequest {
         this.promptType = promptType;
     }
 
-    // --- Static builders to reduce verbosity ---
+    /**
+     * Creates a new {@code AiPromptRequest} using an empty {@link ProgressListener}.
+     *
+     * @param userPrompt   The main input prompt.
+     * @param systemPrompt The system prompt/context.
+     * @param model        The AI model to use.
+     * @param promptType   A string label to categorize the request.
+     * @return A new {@link AiPromptRequest} instance.
+     */
     public static AiPromptRequest of(String userPrompt, String systemPrompt, AIModel model, String promptType) {
         return new AiPromptRequest(userPrompt, systemPrompt, model, new EmptyProgressListener(), promptType);
     }
 
+    /**
+     * Creates a new {@code AiPromptRequest} with a custom progress listener.
+     *
+     * @param userPrompt       The main input prompt.
+     * @param systemPrompt     The system prompt/context.
+     * @param model            The AI model to use.
+     * @param promptType       A string label to categorize the request.
+     * @param listener         A progress listener for tracking.
+     * @return A new {@link AiPromptRequest} instance.
+     */
     public static AiPromptRequest of(String userPrompt, String systemPrompt, AIModel model, String promptType, ProgressListener listener) {
         return new AiPromptRequest(userPrompt, systemPrompt, model, listener, promptType);
     }
