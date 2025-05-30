@@ -8,11 +8,11 @@ public class CacheAiExecutor implements AiExecutor {
 
     private static final Logger logger = LogManager.getLogger(CacheAiExecutor.class);
 
-    private final DefaultAiExecutor aiExecutor;
+    private final AiExecutor aiExecutor;
     private final PromptCacheManager promptCacheManager;
 
     public CacheAiExecutor(
-            DefaultAiExecutor aiExecutor,
+            AiExecutor aiExecutor,
             PromptCacheManager promptCacheManager
     ) {
         this.aiExecutor = aiExecutor;
