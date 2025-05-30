@@ -1,6 +1,8 @@
 package com.avpuser.ai.openai;
 
+import com.avpuser.ai.AIApi;
 import com.avpuser.ai.AIModel;
+import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiResponseParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OpenAIApi {
+public class OpenAIApi implements AIApi {
 
     private final static Logger logger = LogManager.getLogger(OpenAIApi.class);
 
@@ -30,6 +32,7 @@ public class OpenAIApi {
         this.client = HttpClient.newHttpClient();
     }
 
+    @Override
     public String execCompletions(String userPrompt, String systemPrompt, AIModel model) {
         logger.info("userPrompt: " + userPrompt);
         logger.info("systemPrompt: " + systemPrompt);
@@ -77,6 +80,11 @@ public class OpenAIApi {
 
         logger.info("Response body: " + body);
         return body;
+    }
+
+    @Override
+    public AIProvider aiProvider() {
+        return AIProvider.OPENAI;
     }
 
     public List<Map<String, Object>> createMessages(String userPrompt, String systemPrompt) {

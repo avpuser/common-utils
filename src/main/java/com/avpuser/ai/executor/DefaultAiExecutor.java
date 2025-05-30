@@ -1,12 +1,18 @@
 package com.avpuser.ai.executor;
 
+import com.avpuser.ai.AIApi;
 import com.avpuser.ai.AIModel;
+import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiResponseParser;
 import com.avpuser.ai.deepseek.DeepSeekApi;
 import com.avpuser.ai.openai.OpenAIApi;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A default implementation of {@link AiExecutor} that handles plain text AI prompts
@@ -44,18 +50,23 @@ public class DefaultAiExecutor implements AiExecutor {
 
     private final static Logger logger = LogManager.getLogger(DefaultAiExecutor.class);
 
-    private final OpenAIApi openAiApi;
-    private final DeepSeekApi deepSeekApi;
+    private final Map<AIProvider, AIApi> aiApiMap;
 
     /**
      * Constructs a {@code DefaultAiExecutor} with access to specific provider APIs.
-     *
-     * @param openAiApi   OpenAI completions API instance
-     * @param deepSeekApi DeepSeek completions API instance
      */
-    public DefaultAiExecutor(OpenAIApi openAiApi, DeepSeekApi deepSeekApi) {
-        this.openAiApi = openAiApi;
-        this.deepSeekApi = deepSeekApi;
+    public DefaultAiExecutor(List<AIApi> aiApiList) {
+        Map<AIProvider, AIApi> map = new EnumMap<>(AIProvider.class);
+
+        for (AIApi api : aiApiList) {
+            AIProvider provider = api.aiProvider();
+            if (map.containsKey(provider)) {
+                throw new IllegalArgumentException("Duplicate AIApi for provider: " + provider);
+            }
+            map.put(provider, api);
+        }
+
+        this.aiApiMap = Map.copyOf(map);
     }
 
     /**
@@ -91,10 +102,10 @@ public class DefaultAiExecutor implements AiExecutor {
     }
 
     private String execCompletions(String userPrompt, String systemPrompt, AIModel model) {
-        return switch (model.getProvider()) {
-            case OPENAI -> openAiApi.execCompletions(userPrompt, systemPrompt, model);
-            case DEEPSEEK -> deepSeekApi.execCompletions(userPrompt, systemPrompt, model);
-            default -> throw new IllegalArgumentException("Unsupported provider: " + model.getProvider());
-        };
+        AIApi api = aiApiMap.get(model.getProvider());
+        if (api == null) {
+            throw new IllegalArgumentException("Unsupported provider: " + model.getProvider());
+        }
+        return api.execCompletions(userPrompt, systemPrompt, model);
     }
 }

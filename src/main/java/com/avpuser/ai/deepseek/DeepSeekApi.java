@@ -1,6 +1,8 @@
 package com.avpuser.ai.deepseek;
 
+import com.avpuser.ai.AIApi;
 import com.avpuser.ai.AIModel;
+import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiResponseParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DeepSeekApi {
+public class DeepSeekApi implements AIApi {
 
     private final static Logger logger = LogManager.getLogger(DeepSeekApi.class);
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -29,6 +31,7 @@ public class DeepSeekApi {
         this.client = HttpClient.newHttpClient();
     }
 
+    @Override
     public String execCompletions(String userPrompt, String systemPrompt, AIModel model) {
         logger.info("userPrompt: " + userPrompt);
         logger.info("systemPrompt: " + systemPrompt);
@@ -73,6 +76,11 @@ public class DeepSeekApi {
         }
 
         return body;
+    }
+
+    @Override
+    public AIProvider aiProvider() {
+        return AIProvider.DEEPSEEK;
     }
 
     private List<Map<String, Object>> createMessages(String userInput, String systemPrompt) {
