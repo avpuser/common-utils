@@ -1,6 +1,6 @@
-package com.avpuser.gpt.executor;
+package com.avpuser.ai.executor;
 
-import com.avpuser.gpt.AIModel;
+import com.avpuser.ai.AIModel;
 import com.avpuser.progress.ProgressListener;
 
 /**

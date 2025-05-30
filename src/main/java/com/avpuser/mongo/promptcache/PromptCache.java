@@ -1,6 +1,6 @@
 package com.avpuser.mongo.promptcache;
 
-import com.avpuser.gpt.executor.StringPromptRequest;
+import com.avpuser.ai.executor.StringPromptRequest;
 import com.avpuser.mongo.DbEntity;
 import com.avpuser.mongo.validate.SkipMongoCollectionValidation;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

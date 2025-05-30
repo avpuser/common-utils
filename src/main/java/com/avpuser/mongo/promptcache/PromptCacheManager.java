@@ -1,7 +1,7 @@
 package com.avpuser.mongo.promptcache;
 
-import com.avpuser.gpt.executor.PromptCacheService;
-import com.avpuser.gpt.executor.StringPromptRequest;
+import com.avpuser.ai.executor.PromptCacheService;
+import com.avpuser.ai.executor.StringPromptRequest;
 import com.avpuser.mongo.CommonDao;
 import com.avpuser.mongo.CommonManager;
 import com.avpuser.mongo.DbEntity;

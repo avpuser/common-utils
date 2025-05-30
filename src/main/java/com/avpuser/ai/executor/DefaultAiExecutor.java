@@ -1,9 +1,9 @@
-package com.avpuser.gpt.executor;
+package com.avpuser.ai.executor;
 
-import com.avpuser.gpt.AIModel;
-import com.avpuser.gpt.GptResponseParser;
-import com.avpuser.gpt.deepseek.DeepSeekApi;
-import com.avpuser.gpt.openai.OpenAIApi;
+import com.avpuser.ai.AIModel;
+import com.avpuser.ai.AiResponseParser;
+import com.avpuser.ai.deepseek.DeepSeekApi;
+import com.avpuser.ai.openai.OpenAIApi;
 import com.avpuser.utils.JsonUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -67,7 +67,7 @@ public class DefaultAiExecutor implements AiExecutor {
     private String executeAndExtractContent(String userInput, String systemContext, AIModel model) {
         String jsonResponse = logAndExecCompletions(userInput, systemContext, model);
         logger.info("jsonResponse: " + jsonResponse);
-        String contentAsString = GptResponseParser.extractContentAsString(jsonResponse);
+        String contentAsString = AiResponseParser.extractContentAsString(jsonResponse);
         logger.info("contentAsString: " + contentAsString);
         return contentAsString;
     }

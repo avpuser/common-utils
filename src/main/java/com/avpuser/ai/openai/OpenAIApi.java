@@ -1,7 +1,7 @@
-package com.avpuser.gpt.deepseek;
+package com.avpuser.ai.openai;
 
-import com.avpuser.gpt.AIModel;
-import com.avpuser.gpt.GptResponseParser;
+import com.avpuser.ai.AIModel;
+import com.avpuser.ai.AiResponseParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
@@ -12,15 +12,20 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class DeepSeekApi {
+public class OpenAIApi {
 
-    private final static Logger logger = LogManager.getLogger(DeepSeekApi.class);
+    private final static Logger logger = LogManager.getLogger(OpenAIApi.class);
+
     private final String apiKey;
+
     private final HttpClient client;
 
-    public DeepSeekApi(String apiKey) {
+    public OpenAIApi(String apiKey) {
         this.apiKey = apiKey;
         this.client = HttpClient.newHttpClient();
     }
@@ -30,26 +35,32 @@ public class DeepSeekApi {
         logger.info("systemContext: " + systemContext);
         logger.info("model: " + model.getModelName());
 
+        // Формирование сообщений
         List<Map<String, Object>> messages = createMessages(userInput, systemContext);
 
+        // Формирование тела запроса
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model.getModelName());
-        requestBody.put("messages", messages);
+        requestBody.put("messages", messages);  // Используем сформированные сообщения
 
+        // Преобразование тела в JSON
+        ObjectMapper objectMapper = new ObjectMapper();
         String jsonRequestBody;
         try {
-            jsonRequestBody = new ObjectMapper().writeValueAsString(requestBody);
+            jsonRequestBody = objectMapper.writeValueAsString(requestBody);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Ошибка при создании JSON тела запроса", e);
         }
 
+        // Создание HTTP-запроса
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.deepseek.com/v1/chat/completions"))
+                .uri(URI.create("https://api.openai.com/v1/chat/completions"))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + apiKey)
                 .POST(HttpRequest.BodyPublishers.ofString(jsonRequestBody))
                 .build();
 
+        // Отправка запроса и получение ответа
         HttpResponse<String> response;
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -59,31 +70,35 @@ public class DeepSeekApi {
 
         String body = response.body();
         if (response.statusCode() != 200) {
-            logger.error("Error API DeepSeek. Code: " + response.statusCode() + ", response: " + body);
-            throw new RuntimeException("Error API DeepSeek: " + response.statusCode());
+            logger.error("Error API OpenAI. Code: " + response.statusCode() + ", response: " + body);
+            throw new RuntimeException("Error API OpenAI: " + response.statusCode());
+        }
+
+        if (AiResponseParser.isResponseCutOff(body)) {
+            logger.error("Response from ai is cut off.");
         }
 
         logger.info("Response body: " + body);
-        if (GptResponseParser.isResponseCutOff(body)) {
-            logger.error("Response from AI is cut off.");
-        }
-
         return body;
     }
 
-    private List<Map<String, Object>> createMessages(String userInput, String systemContext) {
+    public List<Map<String, Object>> createMessages(String userInput, String systemContext) {
+        // Список сообщений
         List<Map<String, Object>> messages = new ArrayList<>();
 
+        // Сообщение с ролью system
         Map<String, Object> systemMessage = new HashMap<>();
         systemMessage.put("role", "system");
-        systemMessage.put("content", systemContext);
+        systemMessage.put("content", systemContext); // Используем переданный системный контекст
         messages.add(systemMessage);
 
+        // Сообщение с ролью user
         Map<String, Object> userMessage = new HashMap<>();
         userMessage.put("role", "user");
-        userMessage.put("content", userInput);
+        userMessage.put("content", userInput); // Используем введенный текст пользователя
         messages.add(userMessage);
 
         return messages;
     }
 }
+

@@ -1,4 +1,4 @@
-package com.avpuser.gpt.executor;
+package com.avpuser.ai.executor;
 
 import com.avpuser.progress.ProgressWrappedExecutor;
 import org.apache.logging.log4j.LogManager;

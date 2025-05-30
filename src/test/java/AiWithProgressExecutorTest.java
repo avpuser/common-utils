@@ -1,6 +1,6 @@
-import com.avpuser.gpt.executor.AiExecutor;
-import com.avpuser.gpt.executor.AiWithProgressExecutor;
-import com.avpuser.gpt.executor.TypedPromptRequest;
+import com.avpuser.ai.executor.AiExecutor;
+import com.avpuser.ai.executor.AiWithProgressExecutor;
+import com.avpuser.ai.executor.TypedPromptRequest;
 import com.avpuser.progress.ProgressListener;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

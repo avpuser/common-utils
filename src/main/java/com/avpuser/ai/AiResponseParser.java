@@ -1,4 +1,4 @@
-package com.avpuser.gpt;
+package com.avpuser.ai;
 
 import com.avpuser.utils.JsonUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -9,9 +9,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
-public class GptResponseParser {
+public class AiResponseParser {
 
-    private final static Logger logger = LogManager.getLogger(GptResponseParser.class);
+    private final static Logger logger = LogManager.getLogger(AiResponseParser.class);
 
     public static String extractContentAsJsonString(String jsonResponse) {
         return JsonUtils.stripJsonCodeBlock(extractContentAsString(jsonResponse));

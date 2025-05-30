@@ -1,4 +1,4 @@
-package com.avpuser.gpt.executor;
+package com.avpuser.ai.executor;
 
 import java.util.Optional;
 

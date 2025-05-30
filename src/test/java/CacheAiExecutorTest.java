@@ -1,8 +1,8 @@
-import com.avpuser.gpt.AIModel;
-import com.avpuser.gpt.executor.AiExecutor;
-import com.avpuser.gpt.executor.CacheAiExecutor;
-import com.avpuser.gpt.executor.PromptCacheService;
-import com.avpuser.gpt.executor.TypedPromptRequest;
+import com.avpuser.ai.AIModel;
+import com.avpuser.ai.executor.AiExecutor;
+import com.avpuser.ai.executor.CacheAiExecutor;
+import com.avpuser.ai.executor.PromptCacheService;
+import com.avpuser.ai.executor.TypedPromptRequest;
 import com.avpuser.utils.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

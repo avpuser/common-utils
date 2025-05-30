@@ -1,5 +1,5 @@
-import com.avpuser.gpt.AIModel;
-import com.avpuser.gpt.executor.StringPromptRequest;
+import com.avpuser.ai.AIModel;
+import com.avpuser.ai.executor.StringPromptRequest;
 import com.avpuser.mongo.CommonDao;
 import com.avpuser.mongo.promptcache.PromptCache;
 import com.avpuser.mongo.promptcache.PromptCacheManager;

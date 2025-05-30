@@ -1,8 +1,8 @@
-import com.avpuser.gpt.AIModel;
-import com.avpuser.gpt.deepseek.DeepSeekApi;
-import com.avpuser.gpt.executor.DefaultAiExecutor;
-import com.avpuser.gpt.executor.TypedPromptRequest;
-import com.avpuser.gpt.openai.OpenAIApi;
+import com.avpuser.ai.AIModel;
+import com.avpuser.ai.deepseek.DeepSeekApi;
+import com.avpuser.ai.executor.DefaultAiExecutor;
+import com.avpuser.ai.executor.TypedPromptRequest;
+import com.avpuser.ai.openai.OpenAIApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
