@@ -1,6 +1,6 @@
 package com.avpuser.gpt.executor;
 
-import com.avpuser.mongo.promptcache.PromptCacheManager;
+import com.avpuser.utils.JsonUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,7 +13,7 @@ public class CacheAiExecutor implements AiExecutor {
 
     public CacheAiExecutor(
             AiExecutor aiExecutor,
-            PromptCacheManager promptCacheService
+            PromptCacheService promptCacheService
     ) {
         this.aiExecutor = aiExecutor;
         this.promptCacheService = promptCacheService;
@@ -21,32 +21,41 @@ public class CacheAiExecutor implements AiExecutor {
 
     @Override
     public <TRequest, TResponse> TResponse executeAndExtractContent(TypedPromptRequest<TRequest, TResponse> request) {
-        if (request.getRequest() instanceof String && request.getResponseClass() == String.class) {
-            StringPromptRequest promptRequest = new StringPromptRequest(
-                    (String) request.getRequest(),
-                    request.getSystemContext(),
-                    request.getModel(),
-                    request.getProgressListener(),
-                    request.getPromptType()
-            );
+        boolean isRequestString = request.getRequest() instanceof String;
+        boolean isResponseString = request.getResponseClass().equals(String.class);
 
-            return promptCacheService.findCached(promptRequest)
-                    .map(cached -> {
-                        logger.info("Cache hit for: {}", request.getPromptType());
-                        return (TResponse) cached;
-                    })
-                    .orElseGet(() -> {
-                        logger.info("Cache miss for: {}", request.getPromptType());
-                        String response = aiExecutor.executeAndExtractContent(promptRequest);
-                        promptCacheService.save(promptRequest, response);
-                        return (TResponse) response;
-                    });
-        }
+        String promptPayload = isRequestString
+                ? (String) request.getRequest()
+                : JsonUtils.toJson(request.getRequest());
 
-        throw new UnsupportedOperationException(
-                "Cache is only supported for TypedPromptRequest<String, String>, but got: " +
-                        request.getRequest().getClass().getSimpleName() + " -> " +
-                        request.getResponseClass().getSimpleName()
+        StringPromptRequest promptRequest = new StringPromptRequest(
+                promptPayload,
+                request.getSystemContext(),
+                request.getModel(),
+                request.getProgressListener(),
+                request.getPromptType()
         );
+
+        return promptCacheService.findCached(promptRequest)
+                .map(cached -> {
+                    logger.info("Cache hit for: {}", request.getPromptType());
+                    if (isResponseString) {
+                        return (TResponse) cached;
+                    } else {
+                        return JsonUtils.deserializeJsonToObject(cached, request.getResponseClass());
+                    }
+                })
+                .orElseGet(() -> {
+                    logger.info("Cache miss for: {}", request.getPromptType());
+
+                    TResponse response = aiExecutor.executeAndExtractContent(request);
+
+                    String serializedResponse = (response instanceof String)
+                            ? (String) response
+                            : JsonUtils.toJson(response);
+
+                    promptCacheService.save(promptRequest, serializedResponse);
+                    return response;
+                });
     }
 }

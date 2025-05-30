@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class JsonUtils {
 
-    private static final Logger logger = LogManager.getLogger(FileUtils.class);
+    private static final Logger logger = LogManager.getLogger(JsonUtils.class);
 
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
