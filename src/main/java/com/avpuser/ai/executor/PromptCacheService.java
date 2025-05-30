@@ -11,9 +11,9 @@ public interface PromptCacheService {
      * Attempts to retrieve a cached response for the given prompt request.
      *
      * @param request The AI prompt request.
-     * @return An optional containing the cached response if found.
+     * @return An optional containing the cached response (already deserialized) if found.
      */
-    Optional<String> findCached(StringPromptRequest request);
+    <TRequest, TResponse> Optional<TResponse> findCached(TypedPromptRequest<TRequest, TResponse> request);
 
     /**
      * Saves the response for the given prompt request to the cache.
@@ -21,5 +21,5 @@ public interface PromptCacheService {
      * @param request  The AI prompt request.
      * @param response The response to be cached.
      */
-    void save(StringPromptRequest request, String response);
+    <TRequest, TResponse> void save(TypedPromptRequest<TRequest, TResponse> request, TResponse response);
 }

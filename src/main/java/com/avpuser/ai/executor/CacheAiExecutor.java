@@ -1,6 +1,5 @@
 package com.avpuser.ai.executor;
 
-import com.avpuser.utils.JsonUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,40 +20,16 @@ public class CacheAiExecutor implements AiExecutor {
 
     @Override
     public <TRequest, TResponse> TResponse executeAndExtractContent(TypedPromptRequest<TRequest, TResponse> request) {
-        boolean isRequestString = request.getRequest() instanceof String;
-        boolean isResponseString = request.getResponseClass().equals(String.class);
-
-        String promptPayload = isRequestString
-                ? (String) request.getRequest()
-                : JsonUtils.toJson(request.getRequest());
-
-        StringPromptRequest promptRequest = new StringPromptRequest(
-                promptPayload,
-                request.getSystemContext(),
-                request.getModel(),
-                request.getProgressListener(),
-                request.getPromptType()
-        );
-
-        return promptCacheService.findCached(promptRequest)
+        return promptCacheService.findCached(request)
                 .map(cached -> {
                     logger.info("Cache hit for: {}", request.getPromptType());
-                    if (isResponseString) {
-                        return (TResponse) cached;
-                    } else {
-                        return JsonUtils.deserializeJsonToObject(cached, request.getResponseClass());
-                    }
+                    return cached;
                 })
                 .orElseGet(() -> {
                     logger.info("Cache miss for: {}", request.getPromptType());
 
                     TResponse response = aiExecutor.executeAndExtractContent(request);
-
-                    String serializedResponse = (response instanceof String)
-                            ? (String) response
-                            : JsonUtils.toJson(response);
-
-                    promptCacheService.save(promptRequest, serializedResponse);
+                    promptCacheService.save(request, response);
                     return response;
                 });
     }
