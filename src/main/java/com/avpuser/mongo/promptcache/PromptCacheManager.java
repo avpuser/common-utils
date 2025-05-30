@@ -1,5 +1,6 @@
 package com.avpuser.mongo.promptcache;
 
+import com.avpuser.gpt.executor.PromptCacheService;
 import com.avpuser.gpt.executor.StringPromptRequest;
 import com.avpuser.mongo.CommonDao;
 import com.avpuser.mongo.CommonManager;
@@ -9,7 +10,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import java.util.Map;
 import java.util.Optional;
 
-public class PromptCacheManager extends CommonManager<PromptCache> {
+public class PromptCacheManager extends CommonManager<PromptCache> implements PromptCacheService {
 
     public PromptCacheManager(Map<Class<?>, CommonDao<? extends DbEntity>> allDaos) {
         super(allDaos, PromptCache.class);

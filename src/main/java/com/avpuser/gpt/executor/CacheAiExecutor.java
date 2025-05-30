@@ -9,14 +9,14 @@ public class CacheAiExecutor implements AiExecutor {
     private static final Logger logger = LogManager.getLogger(CacheAiExecutor.class);
 
     private final AiExecutor aiExecutor;
-    private final PromptCacheManager promptCacheManager;
+    private final PromptCacheService promptCacheService;
 
     public CacheAiExecutor(
             AiExecutor aiExecutor,
-            PromptCacheManager promptCacheManager
+            PromptCacheManager promptCacheService
     ) {
         this.aiExecutor = aiExecutor;
-        this.promptCacheManager = promptCacheManager;
+        this.promptCacheService = promptCacheService;
     }
 
     @Override
@@ -30,7 +30,7 @@ public class CacheAiExecutor implements AiExecutor {
                     request.getPromptType()
             );
 
-            return promptCacheManager.findCached(promptRequest)
+            return promptCacheService.findCached(promptRequest)
                     .map(cached -> {
                         logger.info("Cache hit for: {}", request.getPromptType());
                         return (TResponse) cached;
@@ -38,7 +38,7 @@ public class CacheAiExecutor implements AiExecutor {
                     .orElseGet(() -> {
                         logger.info("Cache miss for: {}", request.getPromptType());
                         String response = aiExecutor.executeAndExtractContent(promptRequest);
-                        promptCacheManager.save(promptRequest, response);
+                        promptCacheService.save(promptRequest, response);
                         return (TResponse) response;
                     });
         }
