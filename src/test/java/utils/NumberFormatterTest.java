@@ -1,3 +1,5 @@
+package utils;
+
 import com.avpuser.utils.NumberFormatter;
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,3 +1,5 @@
+package utils;
+
 import com.avpuser.utils.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,3 +1,5 @@
+package utils;
+
 import com.avpuser.utils.LanguageUtils;
 import com.github.pemistahl.lingua.api.Language;
 import org.junit.Ignore;

@@ -1,3 +1,5 @@
+package ai;
+
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.deepseek.DeepSeekApi;
 import com.avpuser.ai.executor.DefaultAiExecutor;

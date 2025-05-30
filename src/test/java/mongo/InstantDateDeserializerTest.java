@@ -1,3 +1,5 @@
+package mongo;
+
 import com.avpuser.mongo.typeconverter.InstantDateDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;

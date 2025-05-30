@@ -1,3 +1,5 @@
+package ai;
+
 import com.avpuser.ai.executor.AiExecutor;
 import com.avpuser.ai.executor.AiWithProgressExecutor;
 import com.avpuser.ai.executor.TypedPromptRequest;

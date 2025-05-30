@@ -1,3 +1,5 @@
+package utils;
+
 import com.avpuser.utils.HtmlSanitizer;
 import org.junit.Test;
 

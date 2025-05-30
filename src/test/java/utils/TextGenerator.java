@@ -1,3 +1,5 @@
+package utils;
+
 import com.github.pemistahl.lingua.api.Language;
 
 import java.util.Random;
