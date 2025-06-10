@@ -1,9 +1,9 @@
-package com.avpuser.utils;
+package com.avpuser.console;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import com.avpuser.progress.EmptyProgressListener;
 import com.avpuser.progress.ProgressListener;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,11 +12,11 @@ import java.io.InputStreamReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CommandExecutor {
+public class ResultCommandExecutor {
 
-    private static final Logger logger = LogManager.getLogger(CommandExecutor.class);
+    private static final Logger logger = LogManager.getLogger(ResultCommandExecutor.class);
 
-    public static int exec(String[] command, ProgressListener listener) {
+    public static CommandResult exec(String[] command, ProgressListener listener) {
         String commandStr = String.join(" ", command);
         logger.info("Command: " + commandStr);
 
@@ -58,17 +58,19 @@ public class CommandExecutor {
         if (exitCode != 0) {
             logger.error("Process exited with code: " + exitCode);
         }
-        return exitCode;
+
+        return new CommandResult(
+                exitCode,
+                inputStreamGobbler.getOutput(),
+                errorStreamGobbler.getOutput()
+        );
     }
 
     private static class StreamGobbler implements Runnable {
-
         private final InputStream inputStream;
-
         private final ProgressListener listener;
-
-        private final Pattern progressPattern = Pattern.compile(
-                "\\[download\\]\\s+(\\d+\\.\\d+)%"); // Regex for progress
+        private final Pattern progressPattern = Pattern.compile("\\[download\\]\\s+(\\d+\\.\\d+)%");
+        private final StringBuilder output = new StringBuilder();
 
         public StreamGobbler(InputStream inputStream, ProgressListener listener) {
             this.inputStream = inputStream;
@@ -81,21 +83,25 @@ public class CommandExecutor {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     logger.info(line);
+                    output.append(line).append("\n");
 
                     // Parse and handle progress if listener is provided
                     if (listener != null) {
                         Matcher matcher = progressPattern.matcher(line);
                         if (matcher.find()) {
                             double progress = Double.parseDouble(matcher.group(1));
-                            listener.onProgress((int) progress); // Notify progress
+                            listener.onProgress((int) progress);
                         }
                     }
-
                 }
             } catch (IOException e) {
                 logger.error("Error reading stream", e);
                 throw new RuntimeException(e);
             }
+        }
+
+        public String getOutput() {
+            return output.toString();
         }
     }
 }
