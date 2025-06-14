@@ -3,11 +3,13 @@ package com.avpuser.ai;
 public class AiApiException extends RuntimeException {
     private final int statusCode;
     private final String errorMessage;
+    private final AIProvider aiProvider;
 
-    public AiApiException(int statusCode, String errorMessage) {
-        super("DeepSeek API Error " + statusCode + ": " + errorMessage);
+    public AiApiException(int statusCode, String errorMessage, AIProvider aiProvider) {
+        super(aiProvider.name() + " Error " + statusCode + ": " + errorMessage);
         this.statusCode = statusCode;
         this.errorMessage = errorMessage;
+        this.aiProvider = aiProvider;
     }
 
     public int getStatusCode() {
@@ -16,5 +18,9 @@ public class AiApiException extends RuntimeException {
 
     public String getErrorMessage() {
         return errorMessage;
+    }
+
+    public AIProvider getAIProvider() {
+        return aiProvider;
     }
 }

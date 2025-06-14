@@ -82,9 +82,19 @@ public class DefaultAiExecutor implements AiExecutor {
     }
 
     private String executeWithStringResponse(String userPrompt, String systemPrompt, AIModel model) {
-        String jsonResponse = logAndExecCompletions(userPrompt, systemPrompt, model);
-        logger.info("jsonResponse: {}", jsonResponse);
-        String contentAsString = AiResponseParser.extractContentAsString(jsonResponse);
+        AIApi api = aiApiMap.get(model.getProvider());
+        if (api == null) {
+            throw new IllegalArgumentException("Unsupported provider: " + model.getProvider());
+        }
+
+        String response = logAndExecCompletions(userPrompt, systemPrompt, model);
+        if (api.returnsPlainText()) {
+            logger.info("contentAsString (plain): {}", response);
+            return response;
+        }
+
+        logger.info("jsonResponse: {}", response);
+        String contentAsString = AiResponseParser.extractContentAsString(response);
         logger.info("contentAsString: {}", contentAsString);
         return contentAsString;
     }

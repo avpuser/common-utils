@@ -28,7 +28,7 @@ public class AiApiUtils {
         return body;
     }
 
-    public static void checkAndThrowIfError(HttpResponse<String> response, AIProvider providerName) {
+    public static void checkAndThrowIfError(HttpResponse<String> response, AIProvider aiProvider) {
         int status = response.statusCode();
         String body = response.body();
 
@@ -37,8 +37,8 @@ public class AiApiUtils {
         }
 
         String message = extractApiErrorMessage(body);
-        logger.error("{} API error. Status: {}, Message: {}", providerName.name(), status, message);
-        throw new AiApiException(status, message);
+        logger.error("{} API error. Status: {}, Message: {}", aiProvider.name(), status, message);
+        throw new AiApiException(status, message, aiProvider);
     }
 
     public static List<Map<String, Object>> createMessages(String userPrompt, String systemPrompt) {
