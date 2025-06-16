@@ -117,9 +117,13 @@ public class CommonDao<T extends DbEntity> {
         return result;
     }
 
-    public final Optional<T> findBySpecificationOne(LimitSpecification specification) {
+    public final Optional<T> findSingleBySpecification(LimitSpecification specification) {
         List<T> list = findBySpecification(specification);
-        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+        return switch (list.size()) {
+            case 0 -> Optional.empty();
+            case 1 -> Optional.of(list.getFirst());
+            default -> throw new IllegalStateException("Expected at most one element, but found: " + list.size());
+        };
     }
 
     public final List<T> findBySpecification(LimitSpecification specification) {

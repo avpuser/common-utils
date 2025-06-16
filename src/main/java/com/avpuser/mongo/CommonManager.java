@@ -1,6 +1,5 @@
 package com.avpuser.mongo;
 
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.result.DeleteResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -84,8 +83,8 @@ public abstract class CommonManager<T extends DbEntity> {
         return dao.count();
     }
 
-    public final Optional<T> findBySpecificationOne(LimitSpecification specification) {
-        return dao.findBySpecificationOne(specification);
+    public final Optional<T> findSingleBySpecification(LimitSpecification specification) {
+        return dao.findSingleBySpecification(specification);
     }
 
 }
