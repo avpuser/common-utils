@@ -8,15 +8,15 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.BotSession;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
-public class TelegramBotRunner {
+public class TelegramBotLauncher {
 
-    private static final Logger logger = LogManager.getLogger(TelegramBotRunner.class);
+    private static final Logger logger = LogManager.getLogger(TelegramBotLauncher.class);
 
     private final TelegramLongPollingBot bot;
 
     private BotSession botSession;
 
-    public TelegramBotRunner(TelegramLongPollingBot bot) {
+    public TelegramBotLauncher(TelegramLongPollingBot bot) {
         this.bot = bot;
     }
 
