@@ -2,6 +2,7 @@ package com.avpuser;
 
 import com.avpuser.env.EnvironmentEnum;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ApplicationContext;
 
 public class SpringContextBuilder {
@@ -15,6 +16,17 @@ public class SpringContextBuilder {
      * @return the initialized {@link ApplicationContext}
      */
     public static <T> ApplicationContext run(Class<T> applicationClass, String[] args) {
+        SpringApplication app = new SpringApplication(applicationClass);
+        app.setWebApplicationType(WebApplicationType.NONE);
+
+        if (isMacos()) {
+            app.setAdditionalProfiles(EnvironmentEnum.DEV.getEnvironment());
+        }
+
+        return app.run(args);
+    }
+
+    public static <T> ApplicationContext runWeb(Class<T> applicationClass, String[] args) {
         SpringApplication app = new SpringApplication(applicationClass);
 
         if (isMacos()) {
