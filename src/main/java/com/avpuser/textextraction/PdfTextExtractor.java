@@ -6,7 +6,9 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.Optional;
 
@@ -58,6 +60,18 @@ public class PdfTextExtractor {
             }
         } catch (IOException e) {
             logger.error("Failed to load PDF from URL: " + fileUrl, e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Извлечение текста из PDF-документа по байтам (например, из MultipartFile)
+     */
+    public static Optional<String> extractTextFromPdfBytes(byte[] pdfBytes) {
+        try (PDDocument document = Loader.loadPDF(pdfBytes)) {
+            return extractTextFromDocument(document);
+        } catch (IOException e) {
+            logger.error("Failed to load PDF from byte array", e);
             return Optional.empty();
         }
     }
