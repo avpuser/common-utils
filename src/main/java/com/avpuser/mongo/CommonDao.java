@@ -31,10 +31,12 @@ public class CommonDao<T extends DbEntity> {
 
     private final Class<T> type;
     private final Clock clock;
+    private final String dbEntityName;
 
     public CommonDao(MongoDatabase database, Class<T> type, Clock clock) {
         this.type = type;
         this.clock = clock;
+        this.dbEntityName = type.getSimpleName();
 
         ObjectMapper objectMapper = MongoObjectMapperFactory.createObjectMapper();
         this.mongoCollection = JacksonMongoCollection.builder()
@@ -44,10 +46,6 @@ public class CommonDao<T extends DbEntity> {
 
     public final Class<T> getType() {
         return type;
-    }
-
-    protected String getDbEntityName() {
-        return type.getSimpleName();
     }
 
     public final String insert(T entity) {
@@ -60,14 +58,14 @@ public class CommonDao<T extends DbEntity> {
             entity.setUpdatedAt(now);
         }
         mongoCollection.insert(entity);
-        logger.info(getDbEntityName() + " saved successfully. " + entity);
+        logger.info("{} saved successfully. id={}", dbEntityName, entity.getId());
         return entity.getId();
     }
 
     public final void update(T entity) {
         String id = entity.getId();
         if (!existsById(id)) {
-            throw new EntityNotFoundException("No" + getDbEntityName() + " with id: " + id);
+            throw new EntityNotFoundException("No" + dbEntityName + " with id: " + id);
         }
 
         Instant now = clock.instant();
@@ -88,11 +86,11 @@ public class CommonDao<T extends DbEntity> {
         );
 
         if (result.getModifiedCount() == 0) {
-            throw new VersionConflictException("Version conflict for " + getDbEntityName() + " with id: " + id +
+            throw new VersionConflictException("Version conflict for " + dbEntityName + " with id: " + id +
                     ". Possibly modified concurrently. Expected version: " + oldVersion);
         }
 
-        logger.info(getDbEntityName() + " updated successfully. " + id);
+        logger.info(dbEntityName + " updated successfully. " + id);
     }
 
     public final Optional<T> findById(String id) {
@@ -101,19 +99,19 @@ public class CommonDao<T extends DbEntity> {
         }
         Optional<T> entity = Optional.ofNullable(mongoCollection.findOneById(id));
         if (entity.isEmpty()) {
-            logger.info("Entity of type " + getDbEntityName() + " not found for id: " + id);
+            logger.info("Entity of type " + dbEntityName + " not found for id: " + id);
         }
         return entity;
     }
 
     public T findByIdOrThrow(String id) {
         return findById(id).orElseThrow(() ->
-                new IllegalArgumentException("Entity of type " + getDbEntityName() + " not found for id: " + id));
+                new IllegalArgumentException("Entity of type " + dbEntityName + " not found for id: " + id));
     }
 
 
     public final List<T> findByIds(List<String> ids) {
-        logger.info("Find" + getDbEntityName() + " by ids: " + ids);
+        logger.info("Find " + dbEntityName + " by ids: " + ids);
         Bson filter = Filters.in("_id", ids);
         return mongoCollection.find(filter).into(new ArrayList<>());
     }
@@ -127,10 +125,12 @@ public class CommonDao<T extends DbEntity> {
         }
     }
 
-    public final List<T> findAll() {
+    public List<T> findAll() {
         List<T> result = new ArrayList<>();
-        for (T entity : mongoCollection.find()) {
-            result.add(entity);
+        try (MongoCursor<T> cursor = mongoCollection.find().iterator()) {
+            while (cursor.hasNext()) {
+                result.add(cursor.next());
+            }
         }
         return result;
     }
@@ -145,29 +145,33 @@ public class CommonDao<T extends DbEntity> {
     }
 
     public final List<T> findBySpecification(LimitSpecification specification) {
-        logger.info("Find" + getDbEntityName() + " by specification: " + specification);
+        logger.info("Find {} by specification: {}", dbEntityName, specification);
 
         Bson filter = specification.filter();
-
         Optional<Collation> collationO = specification.collation();
 
+        var findQuery = mongoCollection.find(filter)
+                .sort(specification.sort())
+                .limit(specification.getLimit());
+
+        if (collationO.isPresent()) {
+            findQuery = findQuery.collation(collationO.get());
+        }
+
         List<T> result = new ArrayList<>();
-        if (collationO.isEmpty()) {
-            for (T entity : mongoCollection.find(filter).sort(specification.sort()).limit(specification.getLimit())) {
-                result.add(entity);
-            }
-        } else {
-            for (T entity : mongoCollection.find(filter).collation(collationO.get()).sort(specification.sort()).limit(specification.getLimit())) {
-                result.add(entity);
+        try (MongoCursor<T> cursor = findQuery.iterator()) {
+            while (cursor.hasNext()) {
+                result.add(cursor.next());
             }
         }
+
         return result;
     }
 
     public final DeleteResult deleteBySpecification(LimitSpecification specification) {
         Bson filter = specification.filter();
         DeleteResult deleteResult = mongoCollection.deleteMany(filter);
-        logger.info("Deleted in " + getDbEntityName() + " "
+        logger.info("Deleted in " + dbEntityName + " "
                 + deleteResult.getDeletedCount() + " documents by specification: " + specification);
         return deleteResult;
     }
@@ -176,18 +180,24 @@ public class CommonDao<T extends DbEntity> {
         return findById(id).isPresent();
     }
 
+    public final long countBySpecification(LimitSpecification specification) {
+        return mongoCollection.countDocuments(specification.filter());
+    }
+
     public boolean deleteById(String id) {
         DeleteResult deleteResult = mongoCollection.removeById(id);
         if (deleteResult.getDeletedCount() == 1) {
-            logger.info(getDbEntityName() + " deleted successfully: " + id);
+            logger.info("{} deleted successfully: {}", dbEntityName, id);
             return true;
+        } else {
+            logger.warn("{} not deleted (possibly not found): {}", dbEntityName, id);
+            return false;
         }
-        return false;
     }
 
     public void deleteAll() {
         DeleteResult deleteResult = mongoCollection.deleteMany(Filters.empty());
-        logger.info(getDbEntityName() + " deleted successfully: " + deleteResult.getDeletedCount() + " documents");
+        logger.info(dbEntityName + " deleted successfully: " + deleteResult.getDeletedCount() + " documents");
     }
 
     public final long count() {
