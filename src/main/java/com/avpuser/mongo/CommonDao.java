@@ -1,5 +1,7 @@
 package com.avpuser.mongo;
 
+import com.avpuser.mongo.exception.EntityNotFoundException;
+import com.avpuser.mongo.exception.VersionConflictException;
 import com.avpuser.mongo.typeconverter.MongoObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoCursor;
@@ -7,6 +9,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.UuidRepresentation;
@@ -64,7 +67,7 @@ public class CommonDao<T extends DbEntity> {
     public final void update(T entity) {
         String id = entity.getId();
         if (!existsById(id)) {
-            throw new RuntimeException("No" + getDbEntityName() + " with id: " + id);
+            throw new EntityNotFoundException("No" + getDbEntityName() + " with id: " + id);
         }
 
         Instant now = clock.instant();
@@ -73,7 +76,22 @@ public class CommonDao<T extends DbEntity> {
         }
         entity.setUpdatedAt(now);
 
-        mongoCollection.replaceOne(Filters.eq("_id", id), entity);
+        long oldVersion = entity.getVersion();
+        entity.setVersion(oldVersion + 1);
+
+        UpdateResult result = mongoCollection.replaceOne(
+                Filters.and(
+                        Filters.eq("_id", id),
+                        Filters.eq("version", oldVersion)
+                ),
+                entity
+        );
+
+        if (result.getModifiedCount() == 0) {
+            throw new VersionConflictException("Version conflict for " + getDbEntityName() + " with id: " + id +
+                    ". Possibly modified concurrently. Expected version: " + oldVersion);
+        }
+
         logger.info(getDbEntityName() + " updated successfully. " + id);
     }
 

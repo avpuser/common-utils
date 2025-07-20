@@ -15,6 +15,8 @@ public abstract class DbEntity {
 
     private Instant updatedAt;
 
+    private long version;
+
     public abstract String getId();
 
 }
