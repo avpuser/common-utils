@@ -550,6 +550,95 @@ class CommonDaoTest {
         verify(mongoCollection).replaceOne(any(), eq(entity));
     }
 
+    @Test
+    void testUpdate_Fallback_Success() {
+        // Arrange
+        TestEntity entity = new TestEntity("test-id", "Fallback Name");
+        entity.setVersion(0); // версия 0 — старый объект
+        entity.setCreatedAt(testTime.minusSeconds(3600));
+
+        // Первый вызов — по версии (не сработает)
+        UpdateResult versionedResult = mock(UpdateResult.class);
+        when(versionedResult.getModifiedCount()).thenReturn(0L);
+
+        // Второй вызов — fallback (по _id)
+        UpdateResult fallbackResult = mock(UpdateResult.class);
+        when(fallbackResult.getModifiedCount()).thenReturn(1L); // fallback успешен
+
+        when(mongoCollection.findOneById("test-id")).thenReturn(entity);
+
+        // Первый replaceOne — должен содержать "version" в фильтре
+        when(mongoCollection.replaceOne(
+                argThat(bson -> bson != null && bson.toBsonDocument().toJson().contains("version")),
+                eq(entity))
+        ).thenReturn(versionedResult);
+
+        // Fallback — без условия по version
+        when(mongoCollection.replaceOne(
+                argThat(bson -> bson != null && !bson.toBsonDocument().toJson().contains("version")),
+                eq(entity))
+        ).thenReturn(fallbackResult);
+
+        // Act
+        dao.update(entity);
+
+        // Assert
+        assertEquals(1, entity.getVersion()); // version должен увеличиться
+        assertEquals(testTime, entity.getUpdatedAt());
+        assertEquals(testTime.minusSeconds(3600), entity.getCreatedAt()); // createdAt не трогается
+
+        // Проверка, что оба вызова replaceOne произошли
+        verify(mongoCollection, times(2)).replaceOne(any(Bson.class), eq(entity));
+    }
+
+    @Test
+    void testUpdate_Fallback_Failure() {
+        // Arrange
+        TestEntity entity = new TestEntity("test-id", "Fallback Failure");
+        entity.setVersion(0);
+        entity.setCreatedAt(testTime.minusSeconds(3600));
+
+        UpdateResult versionedResult = mock(UpdateResult.class);
+        when(versionedResult.getModifiedCount()).thenReturn(0L);
+
+        UpdateResult fallbackResult = mock(UpdateResult.class);
+        when(fallbackResult.getModifiedCount()).thenReturn(0L); // fallback тоже не сработал
+
+        when(mongoCollection.findOneById("test-id")).thenReturn(entity);
+
+        when(mongoCollection.replaceOne(
+                argThat(bson -> bson != null && bson.toBsonDocument().toJson().contains("version")),
+                eq(entity))
+        ).thenReturn(versionedResult);
+
+        when(mongoCollection.replaceOne(
+                argThat(bson -> bson != null && !bson.toBsonDocument().toJson().contains("version")),
+                eq(entity))
+        ).thenReturn(fallbackResult);
+
+        // Act & Assert
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> dao.update(entity));
+        assertTrue(exception.getMessage().contains("test-id"));
+
+        verify(mongoCollection, times(2)).replaceOne(any(Bson.class), eq(entity));
+    }
+
+    @Test
+    void testCountBySpecification() {
+        // Arrange
+        LimitSpecification specification = mock(LimitSpecification.class);
+        Bson filter = mock(Bson.class);
+        when(specification.filter()).thenReturn(filter);
+        when(mongoCollection.countDocuments(filter)).thenReturn(123L);
+
+        // Act
+        long result = dao.countBySpecification(specification);
+
+        // Assert
+        assertEquals(123L, result);
+        verify(mongoCollection).countDocuments(filter);
+    }
+
     // Тестовая сущность для тестирования
     @MongoCollection(name = "test_entity")
     static class TestEntity extends DbEntity {

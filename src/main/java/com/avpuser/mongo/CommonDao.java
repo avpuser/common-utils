@@ -62,11 +62,22 @@ public class CommonDao<T extends DbEntity> {
         return entity.getId();
     }
 
+
+    private void verifyExistsAndVersionMatches(T entity) {
+        Optional<T> dbEntityO = findById(entity.getId());
+        if (dbEntityO.isEmpty()) {
+            throw new EntityNotFoundException("No " + dbEntityName + " with id: " + entity.getId());
+        }
+        if (entity.getVersion() != dbEntityO.get().getVersion()) {
+            throw new VersionConflictException("Version conflict for " + dbEntityName + " with id: " + entity.getId() +
+                    ". Possibly modified concurrently. Expected version: " + entity.getVersion() +
+                    ", but found: " + dbEntityO.get().getVersion());
+        }
+    }
+
     public final void update(T entity) {
         String id = entity.getId();
-        if (!existsById(id)) {
-            throw new EntityNotFoundException("No" + dbEntityName + " with id: " + id);
-        }
+        verifyExistsAndVersionMatches(entity);
 
         Instant now = clock.instant();
         if (entity.getCreatedAt() == null) {
@@ -77,19 +88,50 @@ public class CommonDao<T extends DbEntity> {
         long oldVersion = entity.getVersion();
         entity.setVersion(oldVersion + 1);
 
-        UpdateResult result = mongoCollection.replaceOne(
-                Filters.and(
-                        Filters.eq("_id", id),
-                        Filters.eq("version", oldVersion)
-                ),
-                entity
-        );
+        UpdateResult result = tryVersionedUpdate(id, oldVersion, entity);
 
-        if (result.getModifiedCount() == 0) {
+        if (result.getModifiedCount() > 0) {
+            logSuccess(id);
+            return;
+        }
+
+        if (oldVersion > 0) {
             throw new VersionConflictException("Version conflict for " + dbEntityName + " with id: " + id +
                     ". Possibly modified concurrently. Expected version: " + oldVersion);
         }
 
+        result = tryFallbackUpdateForLegacyEntity(id, entity);
+        if (result.getModifiedCount() == 0) {
+            throw new EntityNotFoundException("No " + dbEntityName + " with id: " + id);
+        }
+
+        logger.warn("Fallback used for entity without version: " + id);
+        logSuccess(id);
+    }
+
+    private UpdateResult tryVersionedUpdate(String id, long version, T entity) {
+        return mongoCollection.replaceOne(
+                Filters.and(
+                        Filters.eq("_id", id),
+                        Filters.eq("version", version)
+                ),
+                entity
+        );
+    }
+
+    /**
+     * Attempts to update the entity using only the ID filter, without version check.
+     * This fallback is used for legacy entities that do not have a version field in the database.
+     * Should be used cautiously, as it may overwrite concurrent changes.
+     */
+    private UpdateResult tryFallbackUpdateForLegacyEntity(String id, T entity) {
+        return mongoCollection.replaceOne(
+                Filters.eq("_id", id),
+                entity
+        );
+    }
+
+    private void logSuccess(String id) {
         logger.info(dbEntityName + " updated successfully. " + id);
     }
 
