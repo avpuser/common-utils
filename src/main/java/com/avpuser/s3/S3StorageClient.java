@@ -18,9 +18,9 @@ import java.net.URI;
 import java.nio.file.Paths;
 import java.time.Duration;
 
-public class S3Uploader {
+public class S3StorageClient {
 
-    private static final Logger logger = LogManager.getLogger(S3Uploader.class);
+    private static final Logger logger = LogManager.getLogger(S3StorageClient.class);
 
     private final S3Client s3Client;
 
@@ -34,7 +34,7 @@ public class S3Uploader {
 
     private final String secretKey;
 
-    public S3Uploader(String accessKey, String secretKey, String region, String bucketName, String domain) {
+    public S3StorageClient(String accessKey, String secretKey, String region, String bucketName, String domain) {
         AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
         this.s3Client = S3Client.builder()
                 .region(Region.of(region))
