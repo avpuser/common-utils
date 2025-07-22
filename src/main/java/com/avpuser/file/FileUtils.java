@@ -1,9 +1,9 @@
-package com.avpuser.utils;
+package com.avpuser.file;
 
+import com.avpuser.utils.FileNameType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;

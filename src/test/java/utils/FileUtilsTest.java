@@ -1,6 +1,6 @@
 package utils;
 
-import com.avpuser.utils.FileUtils;
+import com.avpuser.file.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 

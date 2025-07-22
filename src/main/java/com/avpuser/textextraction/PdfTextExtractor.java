@@ -76,13 +76,4 @@ public class PdfTextExtractor {
         }
     }
 
-    public static boolean isPdf(byte[] fileBytes) {
-        // PDF должен начинаться с "%PDF-"
-        return fileBytes.length >= 5 &&
-                fileBytes[0] == 0x25 && // %
-                fileBytes[1] == 0x50 && // P
-                fileBytes[2] == 0x44 && // D
-                fileBytes[3] == 0x46 && // F
-                fileBytes[4] == 0x2D;   // -
-    }
 }

@@ -1,6 +1,6 @@
 package com.avpuser.ftp;
 
-import com.avpuser.utils.FileUtils;
+import com.avpuser.file.FileUtils;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.logging.log4j.LogManager;

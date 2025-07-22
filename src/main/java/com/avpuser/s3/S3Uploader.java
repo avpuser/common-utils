@@ -12,6 +12,8 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -45,6 +47,40 @@ public class S3Uploader {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
     }
+
+    private static String extractFileNameFromS3Key(String s3Key) {
+        if (s3Key == null || s3Key.trim().isEmpty()) {
+            return "unknown";
+        }
+        int lastSlash = s3Key.lastIndexOf('/');
+        String fileName = lastSlash >= 0 ? s3Key.substring(lastSlash + 1) : s3Key;
+        return fileName.isBlank() ? "unknown" : fileName;
+    }
+
+    public String uploadFile(byte[] fileData, String remoteFilePath) {
+        String fileName = extractFileNameFromS3Key(remoteFilePath);
+        File temp = toTempFile(fileData, fileName);
+        try {
+            return uploadFile(temp.getAbsolutePath(), remoteFilePath);
+        } finally {
+            if (!temp.delete()) {
+                logger.error("Unable to delete temporary file: {}", temp.getAbsolutePath());
+            }
+        }
+    }
+
+    private File toTempFile(byte[] data, String fileName) {
+        try {
+            File tempFile = File.createTempFile("upload-", "-" + fileName);
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(data);
+            }
+            return tempFile;
+        } catch (IOException e) {
+            throw new RuntimeException("Не удалось сохранить файл во временное хранилище", e);
+        }
+    }
+
 
     public String uploadFile(String localFilePath, String remoteFilePath) {
         File file = new File(localFilePath);
