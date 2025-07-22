@@ -7,13 +7,16 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Paths;
+import java.time.Duration;
 
 public class S3Uploader {
-
 
     private static final Logger logger = LogManager.getLogger(S3Uploader.class);
 
@@ -25,6 +28,10 @@ public class S3Uploader {
 
     private final String domain;
 
+    private final String accessKey;
+
+    private final String secretKey;
+
     public S3Uploader(String accessKey, String secretKey, String region, String bucketName, String domain) {
         AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
         this.s3Client = S3Client.builder()
@@ -35,6 +42,8 @@ public class S3Uploader {
         this.bucketName = bucketName;
         this.region = region;
         this.domain = domain;
+        this.accessKey = accessKey;
+        this.secretKey = secretKey;
     }
 
     public String uploadFile(String localFilePath, String remoteFilePath) {
@@ -117,6 +126,33 @@ public class S3Uploader {
         } catch (S3Exception e) {
             // Log the error message
             logger.error("Error deleting file: " + e.awsErrorDetails().errorMessage(), e);
+        }
+    }
+
+    public String generatePresignedUrl(String remoteRelativePath, Duration duration) {
+        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
+
+        try (S3Presigner presigner = S3Presigner.builder()
+                .region(Region.of(region))
+                .endpointOverride(URI.create("https://" + domain))
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .build()) {
+
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(remoteRelativePath)
+                    .build();
+
+            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                    .signatureDuration(duration)
+                    .getObjectRequest(getObjectRequest)
+                    .build();
+
+            PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(presignRequest);
+
+            logger.info("Generated pre-signed URL: " + presignedRequest.url());
+
+            return presignedRequest.url().toString();
         }
     }
 }
