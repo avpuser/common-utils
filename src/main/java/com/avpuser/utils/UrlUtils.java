@@ -4,6 +4,7 @@ import com.avpuser.file.FileUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -14,6 +15,24 @@ import java.util.Map;
 import java.util.Optional;
 
 public class UrlUtils {
+
+    public static byte[] download(String urlString) throws IOException {
+        URL url = new URL(urlString);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(10000);
+        connection.setRequestMethod("GET");
+
+        int statusCode = connection.getResponseCode();
+        if (statusCode != HttpURLConnection.HTTP_OK) {
+            throw new IOException("HTTP error code: " + statusCode);
+        }
+
+        try (InputStream in = connection.getInputStream()) {
+            return in.readAllBytes();
+        }
+    }
 
     public static void downloadImage(String imageUrl, String destinationFile) {
         FileUtils.createDirectoriesIfNotExist(destinationFile);
