@@ -48,7 +48,7 @@ public class S3StorageClient {
         this.secretKey = secretKey;
     }
 
-    private static String extractFileNameFromS3Key(String s3Key) {
+    public static String extractFileNameFromS3Key(String s3Key) {
         if (s3Key == null || s3Key.trim().isEmpty()) {
             return "unknown";
         }
@@ -69,7 +69,7 @@ public class S3StorageClient {
         }
     }
 
-    private File toTempFile(byte[] data, String fileName) {
+    public File toTempFile(byte[] data, String fileName) {
         try {
             File tempFile = File.createTempFile("upload-", "-" + fileName);
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {

@@ -9,6 +9,11 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -113,5 +118,43 @@ class S3StorageClientTest {
         // Метод deleteFile проглатывает исключение, поэтому не должно выбрасываться
         assertDoesNotThrow(() -> s3StorageClient.deleteFile("delete/fail.txt"));
         verify(mockS3Client, times(1)).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void testUploadFile_success() throws IOException {
+        // Создаем временный файл
+        File tempFile = File.createTempFile("test-upload-", ".txt");
+        tempFile.deleteOnExit();
+
+        String localPath = tempFile.getAbsolutePath();
+        String remotePath = "folder/testfile.txt";
+
+        // Заполняем файл каким-то содержимым
+        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+            fos.write("hello world".getBytes());
+        }
+
+        when(mockS3Client.putObject(any(PutObjectRequest.class), any(Path.class)))
+                .thenReturn(PutObjectResponse.builder().build());
+
+        String result = s3StorageClient.uploadFile(localPath, remotePath);
+        assertEquals("https://my-bucket.s3.amazonaws.com/folder/testfile.txt", result);
+    }
+
+    @Test
+    void testUploadFile_missingLocalFile_throwsException() {
+        String missingPath = "/path/to/missing/file.txt";
+
+        assertThrows(IllegalArgumentException.class, () ->
+                s3StorageClient.uploadFile(missingPath, "remote/file.txt"));
+    }
+
+    @Test
+    void testExtractFileNameFromS3Key_variousCases() {
+        assertEquals("file.txt", S3StorageClient.extractFileNameFromS3Key("folder/file.txt"));
+        assertEquals("file.txt", S3StorageClient.extractFileNameFromS3Key("file.txt"));
+        assertEquals("unknown", S3StorageClient.extractFileNameFromS3Key(""));
+        assertEquals("unknown", S3StorageClient.extractFileNameFromS3Key(null));
+        assertEquals("unknown", S3StorageClient.extractFileNameFromS3Key("folder/"));
     }
 }
