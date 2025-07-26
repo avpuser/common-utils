@@ -16,21 +16,46 @@ import java.util.Optional;
 
 public class UrlUtils {
 
-    public static byte[] download(String urlString) throws IOException {
-        URL url = new URL(urlString);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    private static final Map<String, String> EXTENSION_MAP = Map.ofEntries(
+            Map.entry(".jpg", ".jpg"),
+            Map.entry(".jpeg", ".jpg"),
+            Map.entry(".png", ".png"),
+            Map.entry(".gif", ".gif"),
+            Map.entry(".bmp", ".bmp"),
+            Map.entry(".webp", ".webp"),
+            Map.entry(".svg", ".svg"),
+            Map.entry(".tiff", ".tiff"),
+            Map.entry(".psd", ".psd"),
+            Map.entry(".ico", ".ico"),
+            Map.entry(".heic", ".heic"),
+            Map.entry(".heif", ".heif"),
+            Map.entry(".ras", ".ras"),
+            Map.entry(".pnm", ".pnm"),
+            Map.entry(".pbm", ".pbm"),
+            Map.entry(".pgm", ".pgm"),
+            Map.entry(".ppm", ".ppm"),
+            Map.entry(".rgb", ".rgb")
+    );
 
-        connection.setConnectTimeout(5000);
-        connection.setReadTimeout(10000);
-        connection.setRequestMethod("GET");
+    public static byte[] download(String urlString) {
+        try {
+            URL url = new URL(urlString);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
-        int statusCode = connection.getResponseCode();
-        if (statusCode != HttpURLConnection.HTTP_OK) {
-            throw new IOException("HTTP error code: " + statusCode);
-        }
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(10000);
+            connection.setRequestMethod("GET");
 
-        try (InputStream in = connection.getInputStream()) {
-            return in.readAllBytes();
+            int statusCode = connection.getResponseCode();
+            if (statusCode != HttpURLConnection.HTTP_OK) {
+                throw new IOException("HTTP error code: " + statusCode);
+            }
+
+            try (InputStream in = connection.getInputStream()) {
+                return in.readAllBytes();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -96,27 +121,6 @@ public class UrlUtils {
 
         return fileExtension;
     }
-
-    private static final Map<String, String> EXTENSION_MAP = Map.ofEntries(
-            Map.entry(".jpg", ".jpg"),
-            Map.entry(".jpeg", ".jpg"),
-            Map.entry(".png", ".png"),
-            Map.entry(".gif", ".gif"),
-            Map.entry(".bmp", ".bmp"),
-            Map.entry(".webp", ".webp"),
-            Map.entry(".svg", ".svg"),
-            Map.entry(".tiff", ".tiff"),
-            Map.entry(".psd", ".psd"),
-            Map.entry(".ico", ".ico"),
-            Map.entry(".heic", ".heic"),
-            Map.entry(".heif", ".heif"),
-            Map.entry(".ras", ".ras"),
-            Map.entry(".pnm", ".pnm"),
-            Map.entry(".pbm", ".pbm"),
-            Map.entry(".pgm", ".pgm"),
-            Map.entry(".ppm", ".ppm"),
-            Map.entry(".rgb", ".rgb")
-    );
 
     private static Optional<String> getExtensionFromUrlIfPresent(String fileUrl) {
         String lowerCaseUrl = fileUrl.toLowerCase();
