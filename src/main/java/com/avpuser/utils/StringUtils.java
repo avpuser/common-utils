@@ -146,4 +146,38 @@ public class StringUtils {
         }
         return false;
     }
+
+    /**
+     * Removes unnecessary spaces from the input string:
+     * - trims leading and trailing whitespace
+     * - replaces all sequences of whitespace characters (including tabs and multiple spaces) with a single space
+     *
+     * @param input the string to process
+     * @return a cleaned-up string with normalized spacing
+     */
+    public static String normalizeSpaces(String input) {
+        if (input == null) {
+            return null;
+        }
+        return input.trim().replaceAll("[\\p{Zs}\\s]+", " ");
+    }
+
+    /**
+     * Capitalizes the first letter of the input string and lowercases the rest.
+     * If the input is null or empty, it is returned as-is.
+     *
+     * @param input the string to process
+     * @return a string with the first letter capitalized and the rest in lowercase
+     */
+    public static String capitalizeFirstLetter(String input) {
+        if (input == null || input.isEmpty()) return input;
+
+        int firstCodePoint = input.codePointAt(0);
+        int firstCharCount = Character.charCount(firstCodePoint);
+
+        String first = new String(Character.toChars(Character.toTitleCase(firstCodePoint)));
+        String rest = input.substring(firstCharCount).toLowerCase();
+
+        return first + rest;
+    }
 }
