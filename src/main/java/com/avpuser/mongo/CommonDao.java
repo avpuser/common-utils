@@ -8,6 +8,7 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import org.apache.logging.log4j.LogManager;
@@ -20,6 +21,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -177,6 +179,72 @@ public class CommonDao<T extends DbEntity> {
         return result;
     }
 
+    /**
+     * Finds entities with optional filtering, sorting, and pagination.
+     * <p>
+     * ⚠ WARNING: This method is best suited for admin panels, dashboards, and exploratory tools.
+     * Avoid using it in performance-critical production paths unless appropriate indexes exist for the filters and sorting.
+     * </p>
+     *
+     * @param limit       Maximum number of documents to return. Must be > 0.
+     * @param skip        Number of documents to skip for pagination. Use 0 for the first page.
+     * @param filters     A map of field names to exact values to filter by. Combined with logical AND. Can be null or empty.
+     * @param sortFields  A map of field names to sort order (true = ascending, false = descending). Can be null or empty.
+     * @return List of matched and sorted documents according to provided parameters.
+     */
+    public List<T> findWithFiltersAndSort(int limit, int skip,
+                                          Map<String, Object> filters,
+                                          Map<String, Boolean> sortFields) {
+        logger.info("Find {} with limit={}, skip={}, filters={}, sortFields={}",
+                dbEntityName, limit, skip, filters, sortFields);
+
+        // 1. Validate limit
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit must be > 0");
+        }
+
+        // 2. Build filter
+        Bson filter = Filters.empty();
+        if (filters != null && !filters.isEmpty()) {
+            List<Bson> filterList = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : filters.entrySet()) {
+                filterList.add(Filters.eq(entry.getKey(), entry.getValue()));
+            }
+            filter = Filters.and(filterList);
+        }
+
+        // 3. Build sort
+        Bson sort = null;
+        if (sortFields != null && !sortFields.isEmpty()) {
+            List<Bson> sortList = new ArrayList<>();
+            for (Map.Entry<String, Boolean> entry : sortFields.entrySet()) {
+                sortList.add(entry.getValue()
+                        ? Sorts.ascending(entry.getKey())
+                        : Sorts.descending(entry.getKey()));
+            }
+            sort = Sorts.orderBy(sortList);
+        }
+
+        // 4. Build query
+        var query = mongoCollection.find(filter)
+                .limit(limit)
+                .skip(skip);
+
+        if (sort != null) {
+            query = query.sort(sort);
+        }
+
+        // 5. Fetch results
+        List<T> result = new ArrayList<>();
+        try (MongoCursor<T> cursor = query.iterator()) {
+            while (cursor.hasNext()) {
+                result.add(cursor.next());
+            }
+        }
+
+        return result;
+    }
+
     public final Optional<T> findSingleBySpecification(LimitSpecification specification) {
         List<T> list = findBySpecification(specification);
         return switch (list.size()) {
@@ -194,7 +262,8 @@ public class CommonDao<T extends DbEntity> {
 
         var findQuery = mongoCollection.find(filter)
                 .sort(specification.sort())
-                .limit(specification.getLimit());
+                .limit(specification.getLimit())
+                .skip(specification.getSkip());
 
         if (collationO.isPresent()) {
             findQuery = findQuery.collation(collationO.get());

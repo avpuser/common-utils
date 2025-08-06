@@ -87,4 +87,8 @@ public abstract class CommonManager<T extends DbEntity> {
         return dao.findSingleBySpecification(specification);
     }
 
+    public List<T> findWithFiltersAndSort(int limit, int skip, Map<String, Object> filters, Map<String, Boolean> sortFields) {
+        return dao.findWithFiltersAndSort(limit, skip, filters, sortFields);
+    }
+
 }
