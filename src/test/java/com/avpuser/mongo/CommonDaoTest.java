@@ -360,6 +360,7 @@ class CommonDaoTest {
         when(specification.filter()).thenReturn(filter);
         when(specification.sort()).thenReturn(sort);
         when(specification.getLimit()).thenReturn(10);
+        when(specification.getSkip()).thenReturn(0); // добавлено
         when(specification.collation()).thenReturn(Optional.empty());
 
         TestEntity entity1 = new TestEntity("id1", "Name1");
@@ -367,10 +368,12 @@ class CommonDaoTest {
         FindIterable<TestEntity> findIterable = mock(FindIterable.class);
         MongoCursor<TestEntity> cursor = mockCursorFor(entity1);
 
+        // Мокаем всю цепочку вызовов
         when(mongoCollection.find(filter)).thenReturn(findIterable);
         when(findIterable.sort(sort)).thenReturn(findIterable);
         when(findIterable.limit(10)).thenReturn(findIterable);
-        when(findIterable.iterator()).thenReturn(cursor); // <== важно!
+        when(findIterable.skip(0)).thenReturn(findIterable); // обязательно!
+        when(findIterable.iterator()).thenReturn(cursor);
 
         // Act
         List<TestEntity> result = dao.findBySpecification(specification);
@@ -381,6 +384,7 @@ class CommonDaoTest {
         verify(mongoCollection).find(filter);
         verify(findIterable).sort(sort);
         verify(findIterable).limit(10);
+        verify(findIterable).skip(0);
         verify(cursor).close();
     }
 
@@ -394,6 +398,7 @@ class CommonDaoTest {
         when(specification.filter()).thenReturn(filter);
         when(specification.sort()).thenReturn(sort);
         when(specification.getLimit()).thenReturn(1);
+        when(specification.getSkip()).thenReturn(0); // добавлено
         when(specification.collation()).thenReturn(Optional.empty());
 
         TestEntity entity = new TestEntity("id1", "Name1");
@@ -401,12 +406,14 @@ class CommonDaoTest {
         FindIterable<TestEntity> findIterable = mock(FindIterable.class);
         MongoCursor<TestEntity> cursor = mock(MongoCursor.class);
 
+        // Мокаем полную цепочку вызовов
         when(mongoCollection.find(filter)).thenReturn(findIterable);
         when(findIterable.sort(sort)).thenReturn(findIterable);
         when(findIterable.limit(1)).thenReturn(findIterable);
+        when(findIterable.skip(0)).thenReturn(findIterable); // важно!
         when(findIterable.iterator()).thenReturn(cursor);
 
-        when(cursor.hasNext()).thenReturn(true, false); // сначала true, потом false
+        when(cursor.hasNext()).thenReturn(true, false);
         when(cursor.next()).thenReturn(entity);
         doNothing().when(cursor).close();
 
@@ -416,7 +423,9 @@ class CommonDaoTest {
         // Assert
         assertTrue(result.isPresent());
         assertEquals(entity, result.get());
+        verify(cursor).close();
     }
+
 
     @Test
     void testFindSingleBySpecification_NotFound() {
@@ -428,6 +437,7 @@ class CommonDaoTest {
         when(specification.filter()).thenReturn(filter);
         when(specification.sort()).thenReturn(sort);
         when(specification.getLimit()).thenReturn(1);
+        when(specification.getSkip()).thenReturn(0); // обязательно
         when(specification.collation()).thenReturn(Optional.empty());
 
         FindIterable<TestEntity> findIterable = mock(FindIterable.class);
@@ -436,6 +446,7 @@ class CommonDaoTest {
         when(mongoCollection.find(filter)).thenReturn(findIterable);
         when(findIterable.sort(sort)).thenReturn(findIterable);
         when(findIterable.limit(1)).thenReturn(findIterable);
+        when(findIterable.skip(0)).thenReturn(findIterable); // добавлено
         when(findIterable.iterator()).thenReturn(cursor);
 
         when(cursor.hasNext()).thenReturn(false);
@@ -446,6 +457,7 @@ class CommonDaoTest {
 
         // Assert
         assertFalse(result.isPresent());
+        verify(cursor).close(); // хорошая практика
     }
 
     @Test
@@ -458,6 +470,7 @@ class CommonDaoTest {
         when(specification.filter()).thenReturn(filter);
         when(specification.sort()).thenReturn(sort);
         when(specification.getLimit()).thenReturn(10);
+        when(specification.getSkip()).thenReturn(0); // обязательно
         when(specification.collation()).thenReturn(Optional.empty());
 
         TestEntity entity1 = new TestEntity("id1", "Name1");
@@ -469,11 +482,10 @@ class CommonDaoTest {
         when(mongoCollection.find(filter)).thenReturn(findIterable);
         when(findIterable.sort(sort)).thenReturn(findIterable);
         when(findIterable.limit(10)).thenReturn(findIterable);
+        when(findIterable.skip(0)).thenReturn(findIterable); // обязательно
         when(findIterable.iterator()).thenReturn(cursor);
 
-        // Первый hasNext() — true, вернётся entity1
-        // Второй hasNext() — true, вернётся entity2
-        // Далее упадёт, так как более одного найдено
+        // Первый hasNext() — true → entity1, второй — true → entity2, потом false
         when(cursor.hasNext()).thenReturn(true, true, false);
         when(cursor.next()).thenReturn(entity1, entity2);
         doNothing().when(cursor).close();
@@ -482,6 +494,9 @@ class CommonDaoTest {
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> dao.findSingleBySpecification(specification));
         assertTrue(exception.getMessage().contains("Expected at most one element"));
+
+        // Проверка, что всё закрыто корректно
+        verify(cursor).close();
     }
 
     @Test
