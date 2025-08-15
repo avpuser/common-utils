@@ -4,12 +4,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
+import software.amazon.awssdk.transfer.s3.model.FileUpload;
+import software.amazon.awssdk.transfer.s3.model.UploadFileRequest;
+import software.amazon.awssdk.transfer.s3.progress.LoggingTransferListener;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -23,6 +29,10 @@ public class S3StorageClient {
     private static final Logger logger = LogManager.getLogger(S3StorageClient.class);
 
     private final S3Client s3Client;
+
+    private final S3TransferManager transferManager;
+
+    private final S3AsyncClient s3AsyncClient;
 
     private final String bucketName;
 
@@ -41,6 +51,31 @@ public class S3StorageClient {
                 .endpointOverride(URI.create("https://" + domain))
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
                 .build();
+
+        this.s3AsyncClient = S3AsyncClient.builder()
+                .region(Region.of(region))
+                .endpointOverride(URI.create("https://" + domain))
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .multipartEnabled(true)
+                .multipartConfiguration(cfg -> cfg
+                        .thresholdInBytes(8L * 1024 * 1024)          // всё >8 МБ идёт через MPU
+                        .minimumPartSizeInBytes(64L * 1024 * 1024)   // размер части 64 МБ
+                        .apiCallBufferSizeInBytes(32L * 1024 * 1024) // буфер, опционально
+                )
+
+                .httpClientBuilder(NettyNioAsyncHttpClient.builder()
+                        .maxConcurrency(64)
+                        .readTimeout(Duration.ofMinutes(10))
+                        .writeTimeout(Duration.ofMinutes(10))
+                        .connectionTimeout(Duration.ofSeconds(30))
+                        .tcpKeepAlive(true)
+                )
+                .build();
+
+        this.transferManager = S3TransferManager.builder()
+                .s3Client(s3AsyncClient)
+                .build();
+
         this.bucketName = bucketName;
         this.region = region;
         this.domain = domain;
@@ -81,6 +116,30 @@ public class S3StorageClient {
         }
     }
 
+    public String uploadFileMultipart(String localFilePath, String remoteFilePath) {
+        File file = new File(localFilePath);
+        if (!file.exists()) {
+            logger.error("File not found: {}", localFilePath);
+            throw new IllegalArgumentException("File not found: " + localFilePath);
+        }
+
+        logger.info("Multipart upload to S3: {} ({} bytes)", remoteFilePath, file.length());
+
+        UploadFileRequest request = UploadFileRequest.builder()
+                .putObjectRequest(b -> b
+                        .bucket(bucketName)
+                        .key(remoteFilePath)
+                        .contentType("application/octet-stream"))
+                .source(Paths.get(localFilePath))                 // <-- тут именно UploadFileRequest
+                .addTransferListener(LoggingTransferListener.create())
+                .build();
+
+        FileUpload upload = transferManager.uploadFile(request);
+        upload.completionFuture().join();
+
+        logger.info("Multipart upload completed: {}", remoteFilePath);
+        return buildS3Url(remoteFilePath);
+    }
 
     public String uploadFile(String localFilePath, String remoteFilePath) {
         File file = new File(localFilePath);
