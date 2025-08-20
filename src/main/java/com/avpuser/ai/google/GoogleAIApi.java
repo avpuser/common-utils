@@ -88,7 +88,7 @@ public class GoogleAIApi implements AIApi {
         }
     }
 
-    public String execImageRequest(byte[] fileBytes, String mimeType, String prompt) {
+    public String execFileAnalysis(byte[] fileBytes, String mimeType, String prompt) {
         if (fileBytes == null || fileBytes.length == 0) {
             throw new IllegalArgumentException("File bytes must not be empty");
         }
@@ -117,7 +117,7 @@ public class GoogleAIApi implements AIApi {
             return extractResponseText(response.body());
 
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException("Failed to call Gemini API (image)", e);
+            throw new RuntimeException("Failed to call Gemini API (file)", e);
         }
     }
 
