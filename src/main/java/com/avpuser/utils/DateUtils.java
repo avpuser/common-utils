@@ -45,4 +45,11 @@ public class DateUtils {
         return localDate.atStartOfDay(ZoneId.of("UTC")).toInstant();
     }
 
+    public static LocalDate toLocalDate(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return instant.atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
 }
