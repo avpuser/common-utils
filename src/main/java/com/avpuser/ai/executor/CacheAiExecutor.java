@@ -45,20 +45,20 @@ public class CacheAiExecutor implements AiExecutor {
 
     private static final Logger logger = LogManager.getLogger(CacheAiExecutor.class);
 
-    private final AiExecutor aiExecutor;
+    private final AiExecutor delegate;
     private final PromptCacheService promptCacheService;
 
     /**
      * Constructs a new {@code CacheAiExecutor} that wraps an existing executor with caching capabilities.
      *
-     * @param aiExecutor         the delegate executor used when cache misses occur
+     * @param delegate         the delegate executor used when cache misses occur
      * @param promptCacheService the service responsible for caching prompt results
      */
     public CacheAiExecutor(
-            AiExecutor aiExecutor,
+            AiExecutor delegate,
             PromptCacheService promptCacheService
     ) {
-        this.aiExecutor = aiExecutor;
+        this.delegate = delegate;
         this.promptCacheService = promptCacheService;
     }
 
@@ -69,7 +69,7 @@ public class CacheAiExecutor implements AiExecutor {
      * @return the AI model's response string, either from cache or from live execution
      */
     @Override
-    public String execute(AiPromptRequest request) {
+    public AiResponse execute(AiPromptRequest request) {
         return promptCacheService.findCached(request)
                 .map(cached -> {
                     logger.debug("Cache hit for: {}", request.getPromptType());
@@ -78,7 +78,7 @@ public class CacheAiExecutor implements AiExecutor {
                 .orElseGet(() -> {
                     logger.debug("Cache miss for: {}", request.getPromptType());
 
-                    String response = aiExecutor.execute(request);
+                    AiResponse response = delegate.execute(request);
                     promptCacheService.save(request, response);
                     return response;
                 });

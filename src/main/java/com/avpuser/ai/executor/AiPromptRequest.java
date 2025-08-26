@@ -3,7 +3,13 @@ package com.avpuser.ai.executor;
 import com.avpuser.ai.AIModel;
 import com.avpuser.progress.EmptyProgressListener;
 import com.avpuser.progress.ProgressListener;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * Represents a typed AI prompt request used for sending structured input to an AI model
@@ -25,6 +31,9 @@ import lombok.Getter;
  * @see PromptCacheService
  */
 @Getter
+@Data
+@ToString
+@EqualsAndHashCode
 public class AiPromptRequest {
 
     /**
@@ -54,12 +63,15 @@ public class AiPromptRequest {
      */
     private final String promptType;
 
-    private AiPromptRequest(String userPrompt, String systemPrompt, AIModel model, ProgressListener progressListener, String promptType) {
+    private final Set<AIModel> fallbackModels;
+
+    private AiPromptRequest(String userPrompt, String systemPrompt, AIModel model, ProgressListener progressListener, String promptType, Set<AIModel> fallbackModels) {
         this.userPrompt = userPrompt;
         this.systemPrompt = systemPrompt;
         this.model = model;
         this.progressListener = progressListener;
         this.promptType = promptType;
+        this.fallbackModels = fallbackModels;
     }
 
     /**
@@ -72,20 +84,24 @@ public class AiPromptRequest {
      * @return A new {@link AiPromptRequest} instance.
      */
     public static AiPromptRequest of(String userPrompt, String systemPrompt, AIModel model, String promptType) {
-        return new AiPromptRequest(userPrompt, systemPrompt, model, new EmptyProgressListener(), promptType);
+        return new AiPromptRequest(userPrompt, systemPrompt, model, new EmptyProgressListener(), promptType, Set.of());
+    }
+
+    public static AiPromptRequest withFallback(String userPrompt, String systemPrompt, AIModel model, String promptType, Set<AIModel> fallbackModels) {
+        return new AiPromptRequest(userPrompt, systemPrompt, model, new EmptyProgressListener(), promptType, fallbackModels);
     }
 
     /**
      * Creates a new {@code AiPromptRequest} with a custom progress listener.
      *
-     * @param userPrompt       The main input prompt.
-     * @param systemPrompt     The system prompt/context.
-     * @param model            The AI model to use.
-     * @param promptType       A string label to categorize the request.
-     * @param listener         A progress listener for tracking.
+     * @param userPrompt   The main input prompt.
+     * @param systemPrompt The system prompt/context.
+     * @param model        The AI model to use.
+     * @param promptType   A string label to categorize the request.
+     * @param listener     A progress listener for tracking.
      * @return A new {@link AiPromptRequest} instance.
      */
     public static AiPromptRequest of(String userPrompt, String systemPrompt, AIModel model, String promptType, ProgressListener listener) {
-        return new AiPromptRequest(userPrompt, systemPrompt, model, listener, promptType);
+        return new AiPromptRequest(userPrompt, systemPrompt, model, listener, promptType, Set.of());
     }
 }

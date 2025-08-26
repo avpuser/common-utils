@@ -5,6 +5,7 @@ import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.deepseek.DeepSeekApi;
 import com.avpuser.ai.executor.AiPromptRequest;
+import com.avpuser.ai.executor.AiResponse;
 import com.avpuser.ai.executor.DefaultAiExecutor;
 import com.avpuser.ai.openai.OpenAIApi;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,9 +49,9 @@ class DefaultAiExecutorTest {
         when(openAiApi.execCompletions("hello", "system", AIModel.GPT_4))
                 .thenReturn("{\"choices\":[{\"message\":{\"content\":\"Hi!\"}}]}");
 
-        String result = executor.execute(request);
+        AiResponse result = executor.execute(request);
 
-        assertEquals("Hi!", result);
+        assertEquals("Hi!", result.getResponse());
         verify(openAiApi).execCompletions("hello", "system", AIModel.GPT_4);
 
         // Подтверждаем, что не было доп. вызовов, кроме aiProvider()
@@ -73,9 +74,9 @@ class DefaultAiExecutorTest {
         when(deepSeekApi.execCompletions("ping", "system", AIModel.DEEPSEEK_CHAT))
                 .thenReturn("{\"choices\":[{\"message\":{\"content\":\"pong\"}}]}");
 
-        String result = executor.execute(request);
+        AiResponse result = executor.execute(request);
 
-        assertEquals("pong", result);
+        assertEquals("pong", result.getResponse());
         verify(deepSeekApi).execCompletions("ping", "system", AIModel.DEEPSEEK_CHAT);
 
         // Подтверждаем, что openAiApi использовался только в конструкторе

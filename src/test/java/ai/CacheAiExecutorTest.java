@@ -1,9 +1,7 @@
 package ai;
 
-import com.avpuser.ai.executor.AiExecutor;
-import com.avpuser.ai.executor.AiPromptRequest;
-import com.avpuser.ai.executor.CacheAiExecutor;
-import com.avpuser.ai.executor.PromptCacheService;
+import com.avpuser.ai.AIModel;
+import com.avpuser.ai.executor.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,11 +28,11 @@ class CacheAiExecutorTest {
     @Test
     void shouldReturnCachedValue_WhenCacheHit() {
         when(mockRequest.getPromptType()).thenReturn("test_prompt");
-        when(mockCache.findCached(mockRequest)).thenReturn(Optional.of("cached-response"));
+        when(mockCache.findCached(mockRequest)).thenReturn(Optional.of(new AiResponse("cached-response", AIModel.GPT_4O)));
 
-        String result = cacheExecutor.execute(mockRequest);
+        AiResponse result = cacheExecutor.execute(mockRequest);
 
-        assertEquals("cached-response", result);
+        assertEquals("cached-response", result.getResponse());
         verify(mockCache).findCached(mockRequest);
         verify(mockAiExecutor, never()).execute(any());
         verify(mockCache, never()).save(any(), any());
@@ -44,31 +42,31 @@ class CacheAiExecutorTest {
     void shouldCallAiExecutorAndSave_WhenCacheMiss() {
         when(mockRequest.getPromptType()).thenReturn("missing_prompt");
         when(mockCache.findCached(mockRequest)).thenReturn(Optional.empty());
-        when(mockAiExecutor.execute(mockRequest)).thenReturn("fresh-response");
+        when(mockAiExecutor.execute(mockRequest)).thenReturn(new AiResponse("fresh-response", AIModel.GPT_4O));
 
-        String result = cacheExecutor.execute(mockRequest);
+        AiResponse result = cacheExecutor.execute(mockRequest);
 
-        assertEquals("fresh-response", result);
+        assertEquals("fresh-response", result.getResponse());
         verify(mockCache).findCached(mockRequest);
         verify(mockAiExecutor).execute(mockRequest);
-        verify(mockCache).save(mockRequest, "fresh-response");
+        verify(mockCache).save(mockRequest, new AiResponse("fresh-response", AIModel.GPT_4O));
     }
 
     @Test
     void shouldThrowException_WhenSaveFails() {
         when(mockRequest.getPromptType()).thenReturn("error_on_save");
         when(mockCache.findCached(mockRequest)).thenReturn(Optional.empty());
-        when(mockAiExecutor.execute(mockRequest)).thenReturn("response");
+        when(mockAiExecutor.execute(mockRequest)).thenReturn(new AiResponse("response", AIModel.GPT_4O));
 
         doThrow(new RuntimeException("save failed"))
-                .when(mockCache).save(mockRequest, "response");
+                .when(mockCache).save(mockRequest, new AiResponse("response", AIModel.GPT_4O));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> cacheExecutor.execute(mockRequest));
         assertEquals("save failed", ex.getMessage());
 
         verify(mockCache).findCached(mockRequest);
         verify(mockAiExecutor).execute(mockRequest);
-        verify(mockCache).save(mockRequest, "response");
+        verify(mockCache).save(mockRequest, new AiResponse("response", AIModel.GPT_4O));
     }
 
 }

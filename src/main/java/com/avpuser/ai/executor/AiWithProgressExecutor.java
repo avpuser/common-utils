@@ -38,10 +38,10 @@ public class AiWithProgressExecutor implements AiExecutor {
 
     private static final Logger logger = LogManager.getLogger(AiWithProgressExecutor.class);
 
-    private final AiExecutor aiExecutor;
+    private final AiExecutor delegate;
 
-    public AiWithProgressExecutor(AiExecutor aiExecutor) {
-        this.aiExecutor = aiExecutor;
+    public AiWithProgressExecutor(AiExecutor delegate) {
+        this.delegate = delegate;
     }
 
     /**
@@ -61,8 +61,8 @@ public class AiWithProgressExecutor implements AiExecutor {
      * @return Response string returned by the AI model
      */
     @Override
-    public String execute(AiPromptRequest request) {
+    public AiResponse execute(AiPromptRequest request) {
         logger.debug("Executing AI request with progress: {}", request.getPromptType());
-        return ProgressWrappedExecutor.runWithProgress(() -> aiExecutor.execute(request), request.getProgressListener());
+        return ProgressWrappedExecutor.runWithProgress(() -> delegate.execute(request), request.getProgressListener());
     }
 }

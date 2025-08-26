@@ -1,7 +1,9 @@
 package ai;
 
+import com.avpuser.ai.AIModel;
 import com.avpuser.ai.executor.AiExecutor;
 import com.avpuser.ai.executor.AiPromptRequest;
+import com.avpuser.ai.executor.AiResponse;
 import com.avpuser.ai.executor.AiWithProgressExecutor;
 import com.avpuser.progress.ProgressListener;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,11 +32,11 @@ class AiWithProgressExecutorTest {
     @Test
     void shouldDelegateExecutionToWrappedExecutor() {
         when(mockRequest.getPromptType()).thenReturn("test_prompt");
-        when(mockExecutor.execute(mockRequest)).thenReturn("response");
+        when(mockExecutor.execute(mockRequest)).thenReturn(new AiResponse("response", AIModel.GPT_4O));
 
-        String result = progressExecutor.execute(mockRequest);
+        AiResponse result = progressExecutor.execute(mockRequest);
 
-        assertEquals("response", result);
+        assertEquals("response", result.getResponse());
         verify(mockExecutor, times(1)).execute(mockRequest);
         verify(mockRequest, times(1)).getProgressListener();
     }
@@ -44,14 +46,14 @@ class AiWithProgressExecutorTest {
         when(mockExecutor.execute(mockRequest)).thenAnswer(invocation -> {
             mockProgressListener.onProgress(0);
             mockProgressListener.onComplete();
-            return "done";
+            return new AiResponse("done", AIModel.GPT_4O);
         });
 
         when(mockRequest.getPromptType()).thenReturn("progress_test");
 
-        String result = progressExecutor.execute(mockRequest);
+        AiResponse result = progressExecutor.execute(mockRequest);
 
-        assertEquals("done", result);
+        assertEquals("done", result.getResponse());
         verify(mockProgressListener).onProgress(0);
         verify(mockProgressListener).onComplete();
     }

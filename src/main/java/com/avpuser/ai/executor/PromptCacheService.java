@@ -27,7 +27,7 @@ public interface PromptCacheService {
      * @return An {@link Optional} containing the cached response (as a raw string), if found.
      *         If no matching entry exists, returns {@link Optional#empty()}.
      */
-    Optional<String> findCached(AiPromptRequest request);
+    Optional<AiResponse> findCached(AiPromptRequest request);
 
     /**
      * Stores the given response in the cache, using the request as a key.
@@ -36,5 +36,5 @@ public interface PromptCacheService {
      * @param request  The original prompt request that was executed.
      * @param response The resulting response to be cached.
      */
-    void save(AiPromptRequest request, String response);
+    void save(AiPromptRequest request, AiResponse response);
 }

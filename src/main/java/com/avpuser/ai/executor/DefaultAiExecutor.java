@@ -77,8 +77,9 @@ public class DefaultAiExecutor implements AiExecutor {
      * @throws IllegalArgumentException if the input is blank or the provider is unsupported
      */
     @Override
-    public String execute(AiPromptRequest request) {
-        return executeWithStringResponse(request.getUserPrompt(), request.getSystemPrompt(), request.getModel());
+    public AiResponse execute(AiPromptRequest request) {
+        String response = executeWithStringResponse(request.getUserPrompt(), request.getSystemPrompt(), request.getModel());
+        return new AiResponse(response, request.getModel());
     }
 
     private String executeWithStringResponse(String userPrompt, String systemPrompt, AIModel model) {

@@ -28,5 +28,5 @@ public interface AiExecutor {
      *                model information, prompt type, and optional progress listener.
      * @return A response string returned by the AI model, either raw or deserialized.
      */
-    String execute(AiPromptRequest request);
+    AiResponse execute(AiPromptRequest request);
 }
