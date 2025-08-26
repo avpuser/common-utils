@@ -104,4 +104,8 @@ public class AiPromptRequest {
     public static AiPromptRequest of(String userPrompt, String systemPrompt, AIModel model, String promptType, ProgressListener listener) {
         return new AiPromptRequest(userPrompt, systemPrompt, model, listener, promptType, Set.of());
     }
+
+    public static AiPromptRequest withFallback(String userPrompt, String systemPrompt, AIModel model, String promptType, ProgressListener listener, Set<AIModel> fallbackModels) {
+        return new AiPromptRequest(userPrompt, systemPrompt, model, listener, promptType, fallbackModels);
+    }
 }
