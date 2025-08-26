@@ -5,6 +5,7 @@ import com.avpuser.ai.executor.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -253,4 +254,109 @@ class RetryAiExecutorTest {
         verify(delegate).execute(stepReq1);
     }
 
+    // ------- Новые кейсы: Throwable/Error -------
+
+    @Test
+    void delegateThrowsError_NonRetryable_WrappedAndPropagated() {
+        when(policy.stepsFor(originalReq)).thenReturn(List.of(stepReq1, stepReq2));
+
+        AssertionError err = new AssertionError("boom-error");
+        when(delegate.execute(stepReq1)).thenThrow(err);
+        when(policy.isRetryable(err)).thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> retryExecutor.execute(originalReq));
+
+        assertEquals("Non-retryable failure", ex.getMessage());
+        assertSame(err, ex.getCause());
+        verify(delegate, times(1)).execute(stepReq1);
+        verify(delegate, never()).execute(stepReq2);
+        verify(policy).isRetryable(err);
+    }
+
+    @Test
+    void delegateThrowsError_RetryableTrue_ThenSucceedsOnFallback() {
+        when(policy.stepsFor(originalReq)).thenReturn(List.of(stepReq1, stepReq2));
+
+        AssertionError err = new AssertionError("transient-error");
+        when(delegate.execute(stepReq1)).thenThrow(err);
+        when(policy.isRetryable(err)).thenReturn(true);
+
+        AiResponse ok = new AiResponse("ok", AIModel.GPT_4O_MINI);
+        when(delegate.execute(stepReq2)).thenReturn(ok);
+
+        AiResponse res = retryExecutor.execute(originalReq);
+
+        assertSame(ok, res);
+        verify(delegate).execute(stepReq1);
+        verify(delegate).execute(stepReq2);
+        verify(policy).isRetryable(err);
+    }
+
+    @Test
+    void lastStepThrowsError_RetryableTrue_AllExhausted_WrappedWithErrorAsCause() {
+        when(policy.stepsFor(originalReq)).thenReturn(List.of(stepReq1, stepReq2));
+
+        LinkageError e1 = new LinkageError("retryable-1");
+        InternalError e2 = new InternalError("retryable-2");
+
+        when(delegate.execute(stepReq1)).thenThrow(e1);
+        when(policy.isRetryable(e1)).thenReturn(true);
+
+        when(delegate.execute(stepReq2)).thenThrow(e2);
+        when(policy.isRetryable(e2)).thenReturn(true);
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> retryExecutor.execute(originalReq));
+
+        assertEquals("All retry steps exhausted", ex.getMessage());
+        assertSame(e2, ex.getCause());
+        verify(delegate).execute(stepReq1);
+        verify(delegate).execute(stepReq2);
+        verify(policy).isRetryable(e1);
+        verify(policy).isRetryable(e2);
+    }
+
+    // ------- Новые кейсы: "checked-like" исключения (обёрнутые) -------
+
+    @Test
+    void runtimeWrappingCheckedException_RetryableTrue_GoesToFallbackAndSucceeds() {
+        when(policy.stepsFor(originalReq)).thenReturn(List.of(stepReq1, stepReq2));
+
+        IOException checked = new IOException("io-issue");
+        RuntimeException wrapped = new RuntimeException("wrapped-checked", checked);
+
+        when(delegate.execute(stepReq1)).thenThrow(wrapped);
+        when(policy.isRetryable(wrapped)).thenReturn(true);
+
+        AiResponse ok = new AiResponse("ok-fallback", AIModel.GPT_4O_MINI);
+        when(delegate.execute(stepReq2)).thenReturn(ok);
+
+        AiResponse res = retryExecutor.execute(originalReq);
+
+        assertSame(ok, res);
+        verify(delegate).execute(stepReq1);
+        verify(delegate).execute(stepReq2);
+        verify(policy).isRetryable(wrapped);
+    }
+
+    @Test
+    void runtimeWrappingCheckedException_NonRetryable_WrappedAndPropagated() {
+        when(policy.stepsFor(originalReq)).thenReturn(List.of(stepReq1, stepReq2));
+
+        IOException checked = new IOException("io-fail");
+        RuntimeException wrapped = new RuntimeException("wrapped-io", checked);
+
+        when(delegate.execute(stepReq1)).thenThrow(wrapped);
+        when(policy.isRetryable(wrapped)).thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> retryExecutor.execute(originalReq));
+
+        assertEquals("Non-retryable failure", ex.getMessage());
+        assertSame(wrapped, ex.getCause());
+        verify(delegate).execute(stepReq1);
+        verify(delegate, never()).execute(stepReq2);
+        verify(policy).isRetryable(wrapped);
+    }
 }
