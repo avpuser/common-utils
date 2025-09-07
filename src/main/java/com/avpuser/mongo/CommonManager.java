@@ -83,6 +83,14 @@ public abstract class CommonManager<T extends DbEntity> {
         return dao.count();
     }
 
+    public final long countBySpecification(LimitSpecification specification) {
+        return dao.countBySpecification(specification);
+    }
+
+    public final boolean existsBySpecification(LimitSpecification specification) {
+        return countBySpecification(specification) > 0;
+    }
+
     public final Optional<T> findSingleBySpecification(LimitSpecification specification) {
         return dao.findSingleBySpecification(specification);
     }
