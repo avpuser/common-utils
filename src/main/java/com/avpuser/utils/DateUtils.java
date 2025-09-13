@@ -16,7 +16,7 @@ public class DateUtils {
 
     public static String formatDateTime(Instant instant, String pattern) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
-        LocalDateTime localDateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
+        LocalDateTime localDateTime = instant.atZone(DateUtils.MOSCOW_ZONE).toLocalDateTime();
 
         return localDateTime.format(formatter);
     }
@@ -51,7 +51,7 @@ public class DateUtils {
         if (instant == null) {
             return null;
         }
-        return instant.atZone(ZoneId.systemDefault()).toLocalDate();
+        return instant.atZone(DateUtils.MOSCOW_ZONE).toLocalDate();
     }
 
 }
