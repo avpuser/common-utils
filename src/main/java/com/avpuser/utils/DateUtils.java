@@ -8,6 +8,8 @@ import java.time.format.DateTimeFormatter;
 
 public class DateUtils {
 
+    public static final ZoneId MOSCOW_ZONE = ZoneId.of("Europe/Moscow");
+
     public static String formatDateTime(Instant instant) {
         return formatDateTime(instant, "yyyy_MM_dd");
     }
