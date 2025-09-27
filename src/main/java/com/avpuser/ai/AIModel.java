@@ -17,8 +17,8 @@ public enum AIModel {
     DEEPSEEK_CHAT("deepseek-chat", AIProvider.DEEPSEEK, 0.07, 1.10),
     DEEPSEEK_REASONER("deepseek-reasoner", AIProvider.DEEPSEEK, 0.14, 2.19),
 
-    GEMINI_PRO("gemini-1.5-pro", AIProvider.GOOGLE, 0.15, 0.60),
-    GEMINI_FLASH("gemini-1.5-flash", AIProvider.GOOGLE, 0.075, 0.30),
+    GEMINI_PRO("gemini-2.5-pro", AIProvider.GOOGLE, 0.007, 0.021),
+    GEMINI_FLASH("gemini-2.5-flash", AIProvider.GOOGLE, 0.00035, 0.00045),
     ;
 
     private final String modelName;
