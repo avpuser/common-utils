@@ -255,7 +255,7 @@ public class CommonDao<T extends DbEntity> {
     }
 
     public final List<T> findBySpecification(LimitSpecification specification) {
-        logger.info("Find {} by specification: {}", dbEntityName, specification);
+        logger.debug("Find {} by specification: {}", dbEntityName, specification);
 
         Bson filter = specification.filter();
         Optional<Collation> collationO = specification.collation();
