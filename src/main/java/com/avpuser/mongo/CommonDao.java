@@ -71,9 +71,8 @@ public class CommonDao<T extends DbEntity> {
             throw new EntityNotFoundException("No " + dbEntityName + " with id: " + entity.getId());
         }
         if (entity.getVersion() != dbEntityO.get().getVersion()) {
-            throw new VersionConflictException("Version conflict for " + dbEntityName + " with id: " + entity.getId() +
-                    ". Possibly modified concurrently. Expected version: " + entity.getVersion() +
-                    ", but found: " + dbEntityO.get().getVersion());
+            throw new VersionConflictException("Version conflict for " + dbEntityName +
+                    ". Possibly modified concurrently.");
         }
     }
 
