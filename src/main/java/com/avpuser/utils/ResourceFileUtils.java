@@ -1,11 +1,15 @@
 package com.avpuser.utils;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 public class ResourceFileUtils {
+
+    private static final Logger logger = LogManager.getLogger(ResourceFileUtils.class);
 
     public static String resolveTestResourceFilePath(String fileName) {
         String resourceRoot = "src/test/resources/";
@@ -41,6 +45,7 @@ public class ResourceFileUtils {
                 }
             }
         } catch (IOException e) {
+            logger.error("Error reading resource: " + fileName, e);
             throw new RuntimeException("Error reading resource: " + fileName, e);
         }
 
