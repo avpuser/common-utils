@@ -2,6 +2,7 @@ package com.avpuser.ai.executor;
 
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AiApiException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,11 +24,13 @@ public final class DefaultRetryPolicy {
     }
 
     public boolean isRetryable(Throwable t) {
-        if (t instanceof AiApiException e) {
-            int sc = e.getStatusCode();
-            return sc == 429 || (sc >= 500 && sc < 600);
-        }
-        return (t instanceof IOException) || (t instanceof TimeoutException);
+        return hasCause(t, AiApiException.class)
+                || hasCause(t, IOException.class)
+                || hasCause(t, TimeoutException.class);
+    }
+
+    private static boolean hasCause(Throwable t, Class<? extends Throwable> type) {
+        return ExceptionUtils.indexOfType(t, type) != -1;
     }
 
 }

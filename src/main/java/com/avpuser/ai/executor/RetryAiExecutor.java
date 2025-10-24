@@ -1,15 +1,17 @@
 package com.avpuser.ai.executor;
 
+import com.avpuser.ai.AIModel;
+import com.avpuser.ai.AIProvider;
+import com.avpuser.ai.AiApiException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
  * Simple retrying executor:
  * - Iterates over steps produced by {@link DefaultRetryPolicy#stepsFor(AiPromptRequest)}:
- *   current model first, then fallback models.
+ * current model first, then fallback models.
  * - Executes exactly one attempt per step (no backoff, no repeats on the same model).
- * - On a failure, checks {@link DefaultRetryPolicy#isRetryable(Throwable)}:
- *   if retryable -> proceeds to the next step; otherwise -> fails immediately.
  * - If all steps are exhausted, throws a RuntimeException with the last error as a cause.
  */
 public class RetryAiExecutor implements AiExecutor {
@@ -22,45 +24,6 @@ public class RetryAiExecutor implements AiExecutor {
     public RetryAiExecutor(AiExecutor delegate, DefaultRetryPolicy retryPolicy) {
         this.delegate = delegate;
         this.retryPolicy = retryPolicy;
-    }
-
-    @Override
-    public AiResponse execute(AiPromptRequest originalRequest) {
-        Throwable lastError = null;
-
-        for (AiPromptRequest stepReq : retryPolicy.stepsFor(originalRequest)) {
-            try {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Executing AI request: model={}, promptType={}",
-                            stepReq.getModel(), stepReq.getPromptType());
-                }
-                return delegate.execute(stepReq);
-            } catch (Throwable t) {
-                lastError = t;
-                final boolean retryable;
-                try {
-                    retryable = retryPolicy.isRetryable(t);
-                } catch (Throwable policyError) {
-                    // If policy itself fails, propagate as runtime immediately.
-                    throw wrap(policyError, "Retry policy evaluation failed");
-                }
-
-                if (!retryable) {
-                    // Non-retryable -> fail fast.
-                    throw wrap(t, "Non-retryable failure");
-                }
-
-                // Retryable -> log and proceed to the next fallback step (if any).
-                logger.warn("Retryable failure on model={} (type={}). Will try next step if any. cause={}",
-                        stepReq.getModel(), stepReq.getPromptType(), t.toString());
-            }
-        }
-
-        // All steps exhausted -> throw runtime with the last error as cause (if present).
-        if (lastError == null) {
-            throw new RuntimeException("All retry steps exhausted");
-        }
-        throw wrap(lastError, "All retry steps exhausted");
     }
 
     /**
@@ -79,4 +42,42 @@ public class RetryAiExecutor implements AiExecutor {
                 : contextMessage;
         return new RuntimeException(msg, t);
     }
+
+    @Override
+    public AiResponse execute(AiPromptRequest originalRequest) {
+        Throwable lastError = null;
+
+        for (AiPromptRequest promptRequest : retryPolicy.stepsFor(originalRequest)) {
+            try {
+                logger.info("Executing AI request: model={}, promptType={}",
+                        promptRequest.getModel(), promptRequest.getPromptType());
+                return delegate.execute(promptRequest);
+            } catch (Throwable t) {
+                lastError = t;
+
+                final boolean retryable;
+                try {
+                    retryable = retryPolicy.isRetryable(t);
+                } catch (Throwable policyError) {
+                    throw wrap(policyError, "Retry policy evaluation failed");
+                }
+
+
+                if (retryable) {
+                    logger.error("Retryable failure on model={}", promptRequest.getModel(), t);
+                } else {
+                    logger.error("Non-AI error on model={} — stopping retries. cause={}",
+                            promptRequest.getModel(), t.toString(), t);
+                    throw wrap(t, "Non-retryable failure");
+                }
+            }
+        }
+
+        // All steps exhausted -> throw runtime with the last error as cause (if present).
+        if (lastError == null) {
+            throw new RuntimeException("All retry steps exhausted");
+        }
+        throw wrap(lastError, "All retry steps exhausted");
+    }
+
 }

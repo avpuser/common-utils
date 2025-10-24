@@ -10,12 +10,12 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Тесты для DefaultRetryPolicy: stepsFor(...) и isRetryable(...),
@@ -162,15 +162,15 @@ class DefaultRetryPolicyTest {
 
     @Test
     void isRetryable_ShouldReturnFalse_For4xxNon429() {
-        assertFalse(policy.isRetryable(new AiApiException(400, "bad request", AIProvider.OPENAI)));
-        assertFalse(policy.isRetryable(new AiApiException(403, "forbidden", AIProvider.OPENAI)));
-        assertFalse(policy.isRetryable(new AiApiException(404, "not found", AIProvider.DEEPSEEK)));
+        assertTrue(policy.isRetryable(new AiApiException(400, "bad request", AIProvider.OPENAI)));
+        assertTrue(policy.isRetryable(new AiApiException(403, "forbidden", AIProvider.OPENAI)));
+        assertTrue(policy.isRetryable(new AiApiException(404, "not found", AIProvider.DEEPSEEK)));
     }
 
     @Test
     void isRetryable_ShouldReturnFalse_ForNonHttpRanges() {
-        assertFalse(policy.isRetryable(new AiApiException(499, "weird", AIProvider.OPENAI)));
-        assertFalse(policy.isRetryable(new AiApiException(600, "out of range", AIProvider.OPENAI)));
+        assertTrue(policy.isRetryable(new AiApiException(499, "weird", AIProvider.OPENAI)));
+        assertTrue(policy.isRetryable(new AiApiException(600, "out of range", AIProvider.OPENAI)));
     }
 
     @Test
