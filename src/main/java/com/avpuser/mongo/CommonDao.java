@@ -1,9 +1,13 @@
 package com.avpuser.mongo;
 
+import com.avpuser.mongo.exception.DuplicateKeyException;
 import com.avpuser.mongo.exception.EntityNotFoundException;
 import com.avpuser.mongo.exception.VersionConflictException;
 import com.avpuser.mongo.typeconverter.MongoObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.ErrorCategory;
+import com.mongodb.MongoBulkWriteException;
+import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Collation;
@@ -59,9 +63,28 @@ public class CommonDao<T extends DbEntity> {
         if (entity.getUpdatedAt() == null) {
             entity.setUpdatedAt(now);
         }
-        mongoCollection.insert(entity);
-        logger.info("{} saved successfully. id={}", dbEntityName, entity.getId());
-        return entity.getId();
+        try {
+            mongoCollection.insert(entity);
+            logger.info("{} saved successfully. id={}", dbEntityName, entity.getId());
+            return entity.getId();
+        } catch (MongoBulkWriteException e) {
+            List<BulkWriteError> errors = e.getWriteErrors();
+            boolean isDuplicate = errors != null && errors.stream()
+                    .anyMatch(err -> ErrorCategory.fromErrorCode(err.getCode()) == ErrorCategory.DUPLICATE_KEY);
+
+            if (isDuplicate) {
+                String message = String.format(
+                        "Duplicate key error in collection '%s': document with id '%s' already exists",
+                        dbEntityName,
+                        entity.getId()
+                );
+                logger.warn(message);
+                throw new DuplicateKeyException(message, e);
+            }
+
+            // If it’s not a duplicate, rethrow the original exception.
+            throw e;
+        }
     }
 
 
@@ -185,10 +208,10 @@ public class CommonDao<T extends DbEntity> {
      * Avoid using it in performance-critical production paths unless appropriate indexes exist for the filters and sorting.
      * </p>
      *
-     * @param limit       Maximum number of documents to return. Must be > 0.
-     * @param skip        Number of documents to skip for pagination. Use 0 for the first page.
-     * @param filters     A map of field names to exact values to filter by. Combined with logical AND. Can be null or empty.
-     * @param sortFields  A map of field names to sort order (true = ascending, false = descending). Can be null or empty.
+     * @param limit      Maximum number of documents to return. Must be > 0.
+     * @param skip       Number of documents to skip for pagination. Use 0 for the first page.
+     * @param filters    A map of field names to exact values to filter by. Combined with logical AND. Can be null or empty.
+     * @param sortFields A map of field names to sort order (true = ascending, false = descending). Can be null or empty.
      * @return List of matched and sorted documents according to provided parameters.
      */
     public List<T> findWithFiltersAndSort(int limit, int skip,
