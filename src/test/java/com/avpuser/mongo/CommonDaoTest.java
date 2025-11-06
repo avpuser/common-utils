@@ -1,7 +1,10 @@
 package com.avpuser.mongo;
 
+import com.avpuser.mongo.exception.DuplicateKeyException;
 import com.avpuser.mongo.exception.EntityNotFoundException;
 import com.avpuser.mongo.exception.VersionConflictException;
+import com.mongodb.MongoBulkWriteException;
+import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -103,6 +106,42 @@ class CommonDaoTest {
         assertEquals(existingTime, entity.getCreatedAt()); // Не должно измениться
         assertEquals(existingTime, entity.getUpdatedAt()); // Не должно измениться
         verify(mongoCollection).insert(entity);
+    }
+
+    @Test
+    void testInsert_DuplicateKeyException() {
+        // Arrange
+        TestEntity entity = new TestEntity("duplicate-id", "Test Name");
+
+        // Mock BulkWriteError with duplicate key error code (11000)
+        BulkWriteError duplicateError = mock(BulkWriteError.class);
+        when(duplicateError.getCode()).thenReturn(11000); // Duplicate key error code
+
+        // Create MongoBulkWriteException with duplicate key error
+        MongoBulkWriteException bulkWriteException = mock(MongoBulkWriteException.class);
+        when(bulkWriteException.getWriteErrors()).thenReturn(Arrays.asList(duplicateError));
+
+        // Mock insert to throw MongoBulkWriteException
+        doThrow(bulkWriteException).when(mongoCollection).insert(entity);
+
+        // Act & Assert
+        DuplicateKeyException exception = assertThrows(DuplicateKeyException.class,
+                () -> dao.insert(entity));
+
+        // Verify exception message contains expected information
+        String exceptionMessage = exception.getMessage();
+        assertTrue(exceptionMessage.contains("Duplicate key error"),
+                "Exception message should contain 'Duplicate key error', but was: " + exceptionMessage);
+        assertTrue(exceptionMessage.contains("duplicate-id"),
+                "Exception message should contain 'duplicate-id', but was: " + exceptionMessage);
+        assertTrue(exceptionMessage.contains("TestEntity"),
+                "Exception message should contain 'TestEntity', but was: " + exceptionMessage);
+
+        // Verify that insert was called
+        verify(mongoCollection).insert(entity);
+
+        // Verify that exception has the original MongoBulkWriteException as cause
+        assertSame(bulkWriteException, exception.getCause());
     }
 
     @Test
