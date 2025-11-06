@@ -1,5 +1,6 @@
 package com.avpuser.textextraction;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -19,7 +20,7 @@ public class PdfFontChecker {
             PDFTextStripper stripper = new PDFTextStripper();
             stripper.setSortByPosition(true);
             String text = stripper.getText(document);
-            if (looksLikeReadableText(text)) {
+            if (ReadableTextChecker.looksLikeReadableText(text)) {
                 // Текст реально читается — значит, для наших целей PDF «нормальный»
                 return false;
             }
@@ -52,7 +53,7 @@ public class PdfFontChecker {
                             for (Integer code : enc.getCodeToNameMap().keySet()) {
                                 if (code == null) continue;
                                 String uni = safeToUnicode(font, code);
-                                if (isNonEmpty(uni)) {
+                                if (StringUtils.isNotBlank(uni)) {
                                     anyFontHasMapping = true;
                                     break;
                                 }
@@ -70,7 +71,7 @@ public class PdfFontChecker {
                         };
                         for (int code : probeCodes) {
                             String uni = safeToUnicode(font, code);
-                            if (isNonEmpty(uni)) {
+                            if (StringUtils.isNotBlank(uni)) {
                                 anyFontHasMapping = true;
                                 break;
                             }
@@ -79,7 +80,7 @@ public class PdfFontChecker {
                         // На всякий случай: попробуем пару универсальных кодов
                         for (int code : new int[]{32, 48, 65, 97}) {
                             String uni = safeToUnicode(font, code);
-                            if (isNonEmpty(uni)) {
+                            if (StringUtils.isNotBlank(uni)) {
                                 anyFontHasMapping = true;
                                 break;
                             }
@@ -96,28 +97,6 @@ public class PdfFontChecker {
 
         // Если ни один шрифт не дал ни одного валидного маппинга и текста мы не вытащили — считаем, что «нет Unicode-маппинга».
         return !anyFontHasMapping;
-    }
-
-    /**
-     * Эвристика: текст «похож на читаемый», если он не пустой и содержит достаточное число букв/цифр.
-     */
-    private static boolean looksLikeReadableText(String text) {
-        if (!isNonEmpty(text)) return false;
-
-        // считаем «полезные» символы: буквы/цифры в широком смысле (Unicode)
-        int useful = 0;
-        int total = text.length();
-        for (int i = 0; i < text.length(); i++) {
-            char ch = text.charAt(i);
-            if (Character.isLetterOrDigit(ch)) useful++;
-        }
-
-        // минимальные пороги: хотя бы 40 полезных символов И не меньше 10% от общего
-        return useful >= 40 && useful * 10 >= total;
-    }
-
-    private static boolean isNonEmpty(String s) {
-        return s != null && !s.trim().isEmpty();
     }
 
     /**
