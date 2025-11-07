@@ -22,7 +22,7 @@ public class PdfTextExtractor {
     private static Optional<String> extractTextFromDocument(PDDocument document) {
         try {
             if (PdfFontChecker.pdfHasNoUnicodeMappingFonts(document)) {
-                logger.error("PDF contains fonts without Unicode mapping — text is likely not extractable.");
+                logger.warn("PDF contains fonts without Unicode mapping — text is likely not extractable.");
                 return Optional.empty();
             }
 
