@@ -88,7 +88,7 @@ public class GoogleAIApi implements AIApi {
         }
     }
 
-    public String execFileAnalysis(byte[] fileBytes, String mimeType, String prompt) {
+    public String extractTextFromFile(byte[] fileBytes, String mimeType, String prompt) {
         if (fileBytes == null || fileBytes.length == 0) {
             throw new IllegalArgumentException("File bytes must not be empty");
         }
