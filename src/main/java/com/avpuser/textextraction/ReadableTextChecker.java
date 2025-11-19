@@ -56,8 +56,7 @@ public class ReadableTextChecker {
         if (s.printableRatio() < MIN_PRINTABLE_RATIO) return true;
         if (s.allowedBlockRatio() < MIN_ALLOWED_BLOCK_RATIO) return true;
         if (s.maxRun >= MAX_RUN_LENGTH) return true;
-        if (s.topCharShare() > MAX_TOP_CHAR_SHARE) return true;
-        return false;
+        return s.topCharShare() > MAX_TOP_CHAR_SHARE;
     }
 
     private static Stats analyze(String raw) {

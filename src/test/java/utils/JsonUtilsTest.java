@@ -24,8 +24,7 @@ public class JsonUtilsTest {
 
         @Override
         public boolean equals(Object obj) {
-            if (!(obj instanceof TestObject)) return false;
-            TestObject other = (TestObject) obj;
+            if (!(obj instanceof TestObject other)) return false;
             return this.name.equals(other.name) && this.age == other.age;
         }
     }

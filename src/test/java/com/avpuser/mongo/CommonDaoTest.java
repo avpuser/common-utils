@@ -119,7 +119,7 @@ class CommonDaoTest {
 
         // Create MongoBulkWriteException with duplicate key error
         MongoBulkWriteException bulkWriteException = mock(MongoBulkWriteException.class);
-        when(bulkWriteException.getWriteErrors()).thenReturn(Arrays.asList(duplicateError));
+        when(bulkWriteException.getWriteErrors()).thenReturn(List.of(duplicateError));
 
         // Mock insert to throw MongoBulkWriteException
         doThrow(bulkWriteException).when(mongoCollection).insert(entity);

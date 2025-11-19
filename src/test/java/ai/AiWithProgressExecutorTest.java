@@ -62,6 +62,6 @@ class AiWithProgressExecutorTest {
     void wrapMethodShouldReturnWrappedInstance() {
         AiWithProgressExecutor wrapped = AiWithProgressExecutor.wrap(mockExecutor);
         assertNotNull(wrapped);
-        assertTrue(wrapped instanceof AiWithProgressExecutor);
+        assertInstanceOf(AiWithProgressExecutor.class, wrapped);
     }
 }
