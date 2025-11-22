@@ -69,26 +69,6 @@ public class GoogleAIApi implements AIApi {
         }
     }
 
-    private String extractResponseText(String responseBody) {
-        try {
-            Map<?, ?> parsed = mapper.readValue(responseBody, Map.class);
-            List<?> candidates = (List<?>) parsed.get("candidates");
-            if (candidates != null && !candidates.isEmpty()) {
-                Map<?, ?> first = (Map<?, ?>) candidates.get(0);
-                Map<?, ?> content = (Map<?, ?>) first.get("content");
-                List<?> parts = (List<?>) content.get("parts");
-                if (parts != null && !parts.isEmpty()) {
-                    Map<?, ?> part = (Map<?, ?>) parts.get(0);
-                    return (String) part.get("text");
-                }
-            }
-            throw new RuntimeException("Empty or unexpected Gemini response structure");
-        } catch (Exception e) {
-            logger.error("Failed to parse Gemini response", e);
-            throw new RuntimeException("Failed to parse Gemini response", e);
-        }
-    }
-
     public String extractTextFromFile(byte[] fileBytes, String mimeType, String prompt) {
         if (fileBytes == null || fileBytes.length == 0) {
             throw new IllegalArgumentException("File bytes must not be empty");
@@ -115,7 +95,7 @@ public class GoogleAIApi implements AIApi {
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             AiApiUtils.checkAndThrowIfError(response, aiProvider());
-            return extractResponseText(response.body());
+            return response.body();
 
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Failed to call Gemini API (file)", e);

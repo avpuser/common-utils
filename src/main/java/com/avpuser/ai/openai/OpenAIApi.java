@@ -4,7 +4,6 @@ import com.avpuser.ai.AIApi;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiApiUtils;
-import com.avpuser.ai.AiResponseParser;
 import com.avpuser.ai.ChatCompletionApiClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -84,7 +83,7 @@ public class OpenAIApi implements AIApi {
         try {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             AiApiUtils.checkAndThrowIfError(response, aiProvider());
-            return AiResponseParser.extractContentAsString(response.body());
+            return response.body();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Failed to call OpenAI vision API", e);
         }
