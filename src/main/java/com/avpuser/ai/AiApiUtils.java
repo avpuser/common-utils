@@ -20,7 +20,7 @@ public class AiApiUtils {
         checkAndThrowIfError(response, aiProvider);
         String body = response.body();
 
-        if (AiResponseParser.isResponseCutOff(body)) {
+        if (OpenAiCompatibleResponseParser.isResponseCutOff(body)) {
             logger.error("Response from AI is cut off.");
         }
 

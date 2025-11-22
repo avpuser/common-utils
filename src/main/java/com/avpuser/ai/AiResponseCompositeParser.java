@@ -45,7 +45,7 @@ public class AiResponseCompositeParser {
     private static AiResponse extractOpenAiCompatibleResponse(String rawResponse, AIModel model) {
         logger.info("jsonResponse: {}", rawResponse);
         
-        String contentResponse = AiResponseParser.extractContentAsString(rawResponse);
+        String contentResponse = OpenAiCompatibleResponseParser.extractContentAsString(rawResponse);
         logger.info("contentAsString: {}", contentResponse);
 
         Integer inputTokens = null;
