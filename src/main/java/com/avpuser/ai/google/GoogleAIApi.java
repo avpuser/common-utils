@@ -62,7 +62,8 @@ public class GoogleAIApi implements AIApi {
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             AiApiUtils.checkAndThrowIfError(response, aiProvider());
-            return extractResponseText(response.body());
+            // Return full JSON response body so usageMetadata can be extracted
+            return response.body();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Failed to call Gemini API", e);
         }
