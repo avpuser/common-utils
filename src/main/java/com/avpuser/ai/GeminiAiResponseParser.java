@@ -82,5 +82,41 @@ public class GeminiAiResponseParser {
             return null;
         }
     }
+
+    public static Integer extractReasoningTokens(String jsonResponse) {
+        try {
+            JsonNode rootNode = objectMapper.readTree(jsonResponse);
+            JsonNode usageMetadata = rootNode.path("usageMetadata");
+            if (usageMetadata.isMissingNode()) {
+                return null;
+            }
+            JsonNode thoughtsTokenCount = usageMetadata.path("thoughtsTokenCount");
+            if (thoughtsTokenCount.isMissingNode()) {
+                return null;
+            }
+            return thoughtsTokenCount.asInt();
+        } catch (Exception e) {
+            logger.debug("Failed to extract reasoning tokens from Gemini response", e);
+            return null;
+        }
+    }
+
+    public static Integer extractTotalTokens(String jsonResponse) {
+        try {
+            JsonNode rootNode = objectMapper.readTree(jsonResponse);
+            JsonNode usageMetadata = rootNode.path("usageMetadata");
+            if (usageMetadata.isMissingNode()) {
+                return null;
+            }
+            JsonNode totalTokenCount = usageMetadata.path("totalTokenCount");
+            if (totalTokenCount.isMissingNode()) {
+                return null;
+            }
+            return totalTokenCount.asInt();
+        } catch (Exception e) {
+            logger.debug("Failed to extract total tokens from Gemini response", e);
+            return null;
+        }
+    }
 }
 

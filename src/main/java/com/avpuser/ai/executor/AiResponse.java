@@ -22,8 +22,12 @@ public class AiResponse {
 
     private final Integer outputTokens;  // completion_tokens
 
+    private final Integer reasoningTokens;    // hidden output / thoughts
+
+    private final Integer totalTokens;   // total_tokens
+
     // Convenience constructor for backward compatibility
     public AiResponse(String response, AIModel model) {
-        this(response, model, null, null);
+        this(response, model, null, null, null, null);
     }
 }
