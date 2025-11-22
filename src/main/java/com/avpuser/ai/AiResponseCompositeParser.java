@@ -36,8 +36,10 @@ public class AiResponseCompositeParser {
         Integer outputTokens = GeminiAiResponseParser.extractOutputTokens(rawResponse);
         Integer reasoningTokens = GeminiAiResponseParser.extractReasoningTokens(rawResponse);
         Integer totalTokens = GeminiAiResponseParser.extractTotalTokens(rawResponse);
+        String providerModelName = GeminiAiResponseParser.extractProviderModelName(rawResponse);
+        String providerRequestId = GeminiAiResponseParser.extractProviderRequestId(rawResponse);
 
-        return new AiResponse(contentResponse, model, inputTokens, outputTokens, reasoningTokens, totalTokens);
+        return new AiResponse(contentResponse, model, inputTokens, outputTokens, reasoningTokens, totalTokens, providerModelName, providerRequestId);
     }
 
     private static AiResponse extractOpenAiCompatibleResponse(String rawResponse, AIModel model) {
@@ -50,9 +52,22 @@ public class AiResponseCompositeParser {
         Integer outputTokens = null;
         Integer reasoningTokens = null;
         Integer totalTokens = null;
+        String providerModelName = null;
+        String providerRequestId = null;
 
         try {
             JsonNode rootNode = objectMapper.readTree(rawResponse);
+            
+            JsonNode modelNode = rootNode.path("model");
+            if (!modelNode.isMissingNode()) {
+                providerModelName = modelNode.asText();
+            }
+            
+            JsonNode idNode = rootNode.path("id");
+            if (!idNode.isMissingNode()) {
+                providerRequestId = idNode.asText();
+            }
+            
             JsonNode usage = rootNode.path("usage");
             if (!usage.isMissingNode()) {
                 JsonNode promptTokens = usage.path("prompt_tokens");
@@ -79,7 +94,7 @@ public class AiResponseCompositeParser {
             logger.debug("Failed to parse usage from JSON response", e);
         }
 
-        return new AiResponse(contentResponse, model, inputTokens, outputTokens, reasoningTokens, totalTokens);
+        return new AiResponse(contentResponse, model, inputTokens, outputTokens, reasoningTokens, totalTokens, providerModelName, providerRequestId);
     }
 }
 

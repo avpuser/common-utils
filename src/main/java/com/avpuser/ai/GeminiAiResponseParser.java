@@ -118,5 +118,33 @@ public class GeminiAiResponseParser {
             return null;
         }
     }
+
+    public static String extractProviderModelName(String jsonResponse) {
+        try {
+            JsonNode rootNode = objectMapper.readTree(jsonResponse);
+            JsonNode modelVersion = rootNode.path("modelVersion");
+            if (modelVersion.isMissingNode()) {
+                return null;
+            }
+            return modelVersion.asText();
+        } catch (Exception e) {
+            logger.debug("Failed to extract provider model name from Gemini response", e);
+            return null;
+        }
+    }
+
+    public static String extractProviderRequestId(String jsonResponse) {
+        try {
+            JsonNode rootNode = objectMapper.readTree(jsonResponse);
+            JsonNode responseId = rootNode.path("responseId");
+            if (responseId.isMissingNode()) {
+                return null;
+            }
+            return responseId.asText();
+        } catch (Exception e) {
+            logger.debug("Failed to extract provider request ID from Gemini response", e);
+            return null;
+        }
+    }
 }
 

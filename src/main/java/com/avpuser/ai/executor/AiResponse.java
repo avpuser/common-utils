@@ -26,8 +26,12 @@ public class AiResponse {
 
     private final Integer totalTokens;   // total_tokens
 
+    private final String providerModelName;   // model name from provider response
+
+    private final String providerRequestId;   // ID запроса у провайдера
+
     // Convenience constructor for backward compatibility
     public AiResponse(String response, AIModel model) {
-        this(response, model, null, null, null, null);
+        this(response, model, null, null, null, null, null, null);
     }
 }
