@@ -1,5 +1,6 @@
 package com.avpuser.ai;
 
+import com.avpuser.ai.executor.AiResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -165,6 +166,28 @@ public class GeminiAiResponseParser {
             logger.debug("Failed to extract provider request ID from Gemini response", e);
             return null;
         }
+    }
+
+    public static AiResponse extractAiResponse(String rawResponse, AIModel model) {
+        logger.info("jsonResponse (Gemini): {}", rawResponse);
+
+        String contentResponse;
+        try {
+            contentResponse = extractContentAsString(rawResponse);
+            logger.info("contentAsString (Gemini): {}", contentResponse);
+        } catch (Exception e) {
+            logger.warn("Failed to parse Gemini JSON response, using raw response", e);
+            contentResponse = rawResponse;
+        }
+
+        Integer inputTokens = extractInputTokens(rawResponse);
+        Integer outputTokens = extractOutputTokens(rawResponse);
+        Integer reasoningTokens = extractReasoningTokens(rawResponse);
+        Integer totalTokens = extractTotalTokens(rawResponse);
+        String providerModelName = extractProviderModelName(rawResponse);
+        String providerRequestId = extractProviderRequestId(rawResponse);
+
+        return new AiResponse(contentResponse, model, inputTokens, outputTokens, reasoningTokens, totalTokens, providerModelName, providerRequestId);
     }
 }
 
