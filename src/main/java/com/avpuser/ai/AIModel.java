@@ -4,15 +4,15 @@ package com.avpuser.ai;
  * Enumeration of supported AI models and their associated pricing.
  *
  * 📌 Sources for pricing information:
- * - OpenAI: https://openai.com/pricing
+ * - OpenAI: https://platform.openai.com/docs/pricing
  * - Google Gemini: https://ai.google.dev/pricing
  * - DeepSeek (estimated): https://deepseek.com or community estimates
  */
 public enum AIModel {
 
-    GPT_4("gpt-4", AIProvider.OPENAI, 2.00, 8.00),
-    GPT_4O("gpt-4o", AIProvider.OPENAI, 5.00, 20.00),
-    GPT_4O_MINI("gpt-4o-mini", AIProvider.OPENAI, 0.60, 2.40),
+    GPT_4("gpt-4.1", AIProvider.OPENAI, 2.00, 8.00),
+    GPT_4O("gpt-4o", AIProvider.OPENAI, 2.50, 10.00),
+    GPT_4O_MINI("gpt-4o-mini", AIProvider.OPENAI, 0.15, 0.60),
 
     DEEPSEEK_CHAT("deepseek-chat", AIProvider.DEEPSEEK, 0.07, 1.10),
     DEEPSEEK_REASONER("deepseek-reasoner", AIProvider.DEEPSEEK, 0.14, 2.19),
