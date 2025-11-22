@@ -23,14 +23,14 @@ public enum AIModel {
 
     private final String modelName;
     private final AIProvider provider;
-    private final double pricePrompt;
-    private final double priceCompletion;
+    private final double inputPricePerMillionTokens;
+    private final double outputPricePerMillionTokens;
 
-    AIModel(String modelName, AIProvider provider, double pricePrompt, double priceCompletion) {
+    AIModel(String modelName, AIProvider provider, double inputPricePerMillionTokens, double outputPricePerMillionTokens) {
         this.modelName = modelName;
         this.provider = provider;
-        this.pricePrompt = pricePrompt;
-        this.priceCompletion = priceCompletion;
+        this.inputPricePerMillionTokens = inputPricePerMillionTokens;
+        this.outputPricePerMillionTokens = outputPricePerMillionTokens;
     }
 
     public String getModelName() {
@@ -41,11 +41,11 @@ public enum AIModel {
         return provider;
     }
 
-    public double getPricePrompt() {
-        return pricePrompt;
+    public double getInputPricePerMillionTokens() {
+        return inputPricePerMillionTokens;
     }
 
-    public double getPriceCompletion() {
-        return priceCompletion;
+    public double getOutputPricePerMillionTokens() {
+        return outputPricePerMillionTokens;
     }
 }
