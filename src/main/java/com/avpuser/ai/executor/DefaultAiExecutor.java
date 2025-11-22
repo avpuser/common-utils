@@ -44,7 +44,7 @@ import java.util.Map;
  * @see AIModel
  * @see OpenAIApi
  * @see DeepSeekApi
- * @see AiResponseParser
+ * @see AiResponseCompositeParser
  */
 public class DefaultAiExecutor implements AiExecutor {
 
