@@ -25,24 +25,44 @@ public class GeminiAiResponseParser {
             throw new RuntimeException("Empty or unexpected Gemini response structure: missing candidates");
         }
 
-        JsonNode firstCandidate = candidates.get(0);
-        JsonNode content = firstCandidate.path("content");
-        if (content.isMissingNode()) {
-            throw new RuntimeException("Empty or unexpected Gemini response structure: missing content");
+        StringBuilder result = new StringBuilder();
+
+        for (JsonNode candidate : candidates) {
+            JsonNode content = candidate.path("content");
+            if (content.isMissingNode()) {
+                throw new RuntimeException("Empty or unexpected Gemini response structure: missing content");
+            }
+
+            JsonNode parts = content.path("parts");
+            if (parts.isMissingNode() || !parts.isArray() || parts.size() == 0) {
+                throw new RuntimeException("Empty or unexpected Gemini response structure: missing parts");
+            }
+
+            for (JsonNode part : parts) {
+                // Most common case — text
+                if (part.has("text")) {
+                    String partText = part.get("text").asText();
+                    if (!partText.isEmpty()) {
+                        if (result.length() > 0) {
+                            result.append("\n");
+                        }
+                        result.append(partText);
+                    }
+                    continue;
+                }
+
+                // If there is inline_data — skip it
+                if (part.has("inline_data")) {
+                    logger.debug("Gemini part contains inline_data — skipping.");
+                    continue;
+                }
+
+                // If there is other content — log and skip
+                logger.debug("Gemini part without text field: {}", part.toString());
+            }
         }
 
-        JsonNode parts = content.path("parts");
-        if (parts.isMissingNode() || !parts.isArray() || parts.size() == 0) {
-            throw new RuntimeException("Empty or unexpected Gemini response structure: missing parts");
-        }
-
-        JsonNode part = parts.get(0);
-        JsonNode text = part.path("text");
-        if (text.isMissingNode()) {
-            throw new RuntimeException("Empty or unexpected Gemini response structure: missing text");
-        }
-
-        String contentText = text.asText();
+        String contentText = result.toString();
         logger.info(contentText);
         return contentText;
     }
