@@ -3,11 +3,9 @@ package com.avpuser.ai.executor;
 import com.avpuser.ai.AIApi;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
-import com.avpuser.ai.AiResponseParser;
+import com.avpuser.ai.AiResponseCompositeParser;
 import com.avpuser.ai.deepseek.DeepSeekApi;
 import com.avpuser.ai.openai.OpenAIApi;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,8 +50,6 @@ public class DefaultAiExecutor implements AiExecutor {
 
     private final static Logger logger = LogManager.getLogger(DefaultAiExecutor.class);
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
     private final Map<AIProvider, AIApi> aiApiMap;
 
     /**
@@ -89,79 +85,7 @@ public class DefaultAiExecutor implements AiExecutor {
 
         String rawResponse = logAndExecCompletions(request.getUserPrompt(), request.getSystemPrompt(), request.getModel());
         
-        Integer inputTokens = null;
-        Integer outputTokens = null;
-        String contentResponse;
-        
-        if (api.returnsPlainText()) {
-            // For Gemini, rawResponse is now the full JSON response body
-            if (request.getModel().getProvider() == AIProvider.GOOGLE) {
-                try {
-                    JsonNode rootNode = objectMapper.readTree(rawResponse);
-                    
-                    // Extract text content
-                    JsonNode candidates = rootNode.path("candidates");
-                    if (!candidates.isMissingNode() && candidates.isArray() && candidates.size() > 0) {
-                        JsonNode firstCandidate = candidates.get(0);
-                        JsonNode content = firstCandidate.path("content");
-                        JsonNode parts = content.path("parts");
-                        if (!parts.isMissingNode() && parts.isArray() && parts.size() > 0) {
-                            JsonNode part = parts.get(0);
-                            contentResponse = part.path("text").asText();
-                        } else {
-                            contentResponse = rawResponse;
-                        }
-                    } else {
-                        contentResponse = rawResponse;
-                    }
-                    
-                    // Extract usageMetadata
-                    JsonNode usageMetadata = rootNode.path("usageMetadata");
-                    if (!usageMetadata.isMissingNode()) {
-                        JsonNode promptTokenCount = usageMetadata.path("promptTokenCount");
-                        if (!promptTokenCount.isMissingNode()) {
-                            inputTokens = promptTokenCount.asInt();
-                        }
-                        JsonNode completionTokenCount = usageMetadata.path("completionTokenCount");
-                        if (!completionTokenCount.isMissingNode()) {
-                            outputTokens = completionTokenCount.asInt();
-                        }
-                    }
-                    
-                    logger.info("contentAsString (Gemini): {}", contentResponse);
-                } catch (Exception e) {
-                    logger.debug("Failed to parse Gemini JSON response, treating as plain text", e);
-                    contentResponse = rawResponse;
-                }
-            } else {
-                logger.info("contentAsString (plain): {}", rawResponse);
-                contentResponse = rawResponse;
-            }
-        } else {
-            logger.info("jsonResponse: {}", rawResponse);
-            contentResponse = AiResponseParser.extractContentAsString(rawResponse);
-            logger.info("contentAsString: {}", contentResponse);
-            
-            // Parse usage from JSON response for OpenAI/DeepSeek
-            try {
-                JsonNode rootNode = objectMapper.readTree(rawResponse);
-                JsonNode usage = rootNode.path("usage");
-                if (!usage.isMissingNode()) {
-                    JsonNode promptTokens = usage.path("prompt_tokens");
-                    if (!promptTokens.isMissingNode()) {
-                        inputTokens = promptTokens.asInt();
-                    }
-                    JsonNode completionTokens = usage.path("completion_tokens");
-                    if (!completionTokens.isMissingNode()) {
-                        outputTokens = completionTokens.asInt();
-                    }
-                }
-            } catch (Exception e) {
-                logger.debug("Failed to parse usage from JSON response", e);
-            }
-        }
-        
-        return new AiResponse(contentResponse, request.getModel(), inputTokens, outputTokens);
+        return AiResponseCompositeParser.extractAiResponse(request.getModel().getProvider(), rawResponse, request.getModel());
     }
 
     private String logAndExecCompletions(String userPrompt, String systemPrompt, AIModel model) {

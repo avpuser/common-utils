@@ -151,9 +151,4 @@ public class GoogleAIApi implements AIApi {
     public AIProvider aiProvider() {
         return AI_PROVIDER;
     }
-
-    @Override
-    public boolean returnsPlainText() {
-        return true;
-    }
 }

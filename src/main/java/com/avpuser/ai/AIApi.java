@@ -23,9 +23,4 @@ public interface AIApi {
      * @return the provider (e.g., OPENAI, DEEPSEEK)
      */
     AIProvider aiProvider();
-
-    /** Возвращает true, если API уже возвращает финальный текст, а не JSON. */
-    default boolean returnsPlainText() {
-        return false;
-    }
 }
