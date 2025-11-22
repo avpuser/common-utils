@@ -6,7 +6,7 @@ package com.avpuser.ai;
  * 📌 Sources for pricing information:
  * - OpenAI: https://platform.openai.com/docs/pricing
  * - Google Gemini: https://ai.google.dev/pricing
- * - DeepSeek (estimated): https://deepseek.com or community estimates
+ * - DeepSeek (estimated): https://api-docs.deepseek.com/quick_start/pricing-details-usd
  */
 public enum AIModel {
 
@@ -14,8 +14,8 @@ public enum AIModel {
     GPT_4O("gpt-4o", AIProvider.OPENAI, 2.50, 10.00),
     GPT_4O_MINI("gpt-4o-mini", AIProvider.OPENAI, 0.15, 0.60),
 
-    DEEPSEEK_CHAT("deepseek-chat", AIProvider.DEEPSEEK, 0.07, 1.10),
-    DEEPSEEK_REASONER("deepseek-reasoner", AIProvider.DEEPSEEK, 0.14, 2.19),
+    DEEPSEEK_CHAT("deepseek-chat", AIProvider.DEEPSEEK, 0.27, 1.10),
+    DEEPSEEK_REASONER("deepseek-reasoner", AIProvider.DEEPSEEK, 0.55, 2.19),
 
     GEMINI_PRO("gemini-2.5-pro", AIProvider.GOOGLE, 1.25, 10.00),
     GEMINI_FLASH("gemini-2.5-flash", AIProvider.GOOGLE, 0.30, 2.50),
