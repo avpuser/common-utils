@@ -13,20 +13,28 @@ public class OpenAiCompatibleResponseParser {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static String extractContentAsString(String jsonResponse) {
+    public static AiResponse extractAiResponse(String rawResponse, AIModel model) {
+        logger.info("jsonResponse: {}", rawResponse);
 
         JsonNode rootNode;
         try {
-            rootNode = objectMapper.readTree(jsonResponse);
+            rootNode = objectMapper.readTree(rawResponse);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            logger.warn("Failed to parse OpenAI-compatible JSON response", e);
+            return new AiResponse(rawResponse, model, null, null, null, null, null, null);
         }
 
-        JsonNode messageNode = rootNode.path("choices").get(0).path("message").path("content");
+        String contentResponse = extractContentAsString(rootNode);
+        logger.info("contentAsString: {}", contentResponse);
 
-        String content = messageNode.asText();
-        logger.info(content);
-        return content;
+        Integer inputTokens = extractInputTokens(rootNode);
+        Integer outputTokens = extractOutputTokens(rootNode);
+        Integer reasoningTokens = extractReasoningTokens(rootNode);
+        Integer totalTokens = extractTotalTokens(rootNode);
+        String providerModelName = extractProviderModelName(rootNode);
+        String providerRequestId = extractProviderRequestId(rootNode);
+
+        return new AiResponse(contentResponse, model, inputTokens, outputTokens, reasoningTokens, totalTokens, providerModelName, providerRequestId);
     }
 
     public static boolean isResponseCutOff(String jsonResponse) {
@@ -44,9 +52,16 @@ public class OpenAiCompatibleResponseParser {
         }
     }
 
-    public static Integer extractInputTokens(String jsonResponse) {
+    private static String extractContentAsString(JsonNode rootNode) {
+        JsonNode messageNode = rootNode.path("choices").get(0).path("message").path("content");
+
+        String content = messageNode.asText();
+        logger.info(content);
+        return content;
+    }
+
+    private static Integer extractInputTokens(JsonNode rootNode) {
         try {
-            JsonNode rootNode = objectMapper.readTree(jsonResponse);
             JsonNode usage = rootNode.path("usage");
             if (usage.isMissingNode()) {
                 return null;
@@ -62,9 +77,8 @@ public class OpenAiCompatibleResponseParser {
         }
     }
 
-    public static Integer extractOutputTokens(String jsonResponse) {
+    private static Integer extractOutputTokens(JsonNode rootNode) {
         try {
-            JsonNode rootNode = objectMapper.readTree(jsonResponse);
             JsonNode usage = rootNode.path("usage");
             if (usage.isMissingNode()) {
                 return null;
@@ -80,9 +94,8 @@ public class OpenAiCompatibleResponseParser {
         }
     }
 
-    public static Integer extractReasoningTokens(String jsonResponse) {
+    private static Integer extractReasoningTokens(JsonNode rootNode) {
         try {
-            JsonNode rootNode = objectMapper.readTree(jsonResponse);
             JsonNode usage = rootNode.path("usage");
             if (usage.isMissingNode()) {
                 return null;
@@ -102,9 +115,8 @@ public class OpenAiCompatibleResponseParser {
         }
     }
 
-    public static Integer extractTotalTokens(String jsonResponse) {
+    private static Integer extractTotalTokens(JsonNode rootNode) {
         try {
-            JsonNode rootNode = objectMapper.readTree(jsonResponse);
             JsonNode usage = rootNode.path("usage");
             if (usage.isMissingNode()) {
                 return null;
@@ -120,9 +132,8 @@ public class OpenAiCompatibleResponseParser {
         }
     }
 
-    public static String extractProviderModelName(String jsonResponse) {
+    private static String extractProviderModelName(JsonNode rootNode) {
         try {
-            JsonNode rootNode = objectMapper.readTree(jsonResponse);
             JsonNode modelNode = rootNode.path("model");
             if (modelNode.isMissingNode()) {
                 return null;
@@ -134,9 +145,8 @@ public class OpenAiCompatibleResponseParser {
         }
     }
 
-    public static String extractProviderRequestId(String jsonResponse) {
+    private static String extractProviderRequestId(JsonNode rootNode) {
         try {
-            JsonNode rootNode = objectMapper.readTree(jsonResponse);
             JsonNode idNode = rootNode.path("id");
             if (idNode.isMissingNode()) {
                 return null;
@@ -146,21 +156,5 @@ public class OpenAiCompatibleResponseParser {
             logger.debug("Failed to extract provider request ID from OpenAI-compatible response", e);
             return null;
         }
-    }
-
-    public static AiResponse extractAiResponse(String rawResponse, AIModel model) {
-        logger.info("jsonResponse: {}", rawResponse);
-
-        String contentResponse = extractContentAsString(rawResponse);
-        logger.info("contentAsString: {}", contentResponse);
-
-        Integer inputTokens = extractInputTokens(rawResponse);
-        Integer outputTokens = extractOutputTokens(rawResponse);
-        Integer reasoningTokens = extractReasoningTokens(rawResponse);
-        Integer totalTokens = extractTotalTokens(rawResponse);
-        String providerModelName = extractProviderModelName(rawResponse);
-        String providerRequestId = extractProviderRequestId(rawResponse);
-
-        return new AiResponse(contentResponse, model, inputTokens, outputTokens, reasoningTokens, totalTokens, providerModelName, providerRequestId);
     }
 }
