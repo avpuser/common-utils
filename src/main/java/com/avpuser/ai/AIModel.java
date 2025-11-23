@@ -1,5 +1,7 @@
 package com.avpuser.ai;
 
+import java.math.BigDecimal;
+
 /**
  * Enumeration of supported AI models and their associated pricing.
  *
@@ -10,23 +12,23 @@ package com.avpuser.ai;
  */
 public enum AIModel {
 
-    GPT_4("gpt-4.1", AIProvider.OPENAI, 2.00, 8.00),
-    GPT_4O("gpt-4o", AIProvider.OPENAI, 2.50, 10.00),
-    GPT_4O_MINI("gpt-4o-mini", AIProvider.OPENAI, 0.15, 0.60),
+    GPT_4("gpt-4.1", AIProvider.OPENAI, new BigDecimal("2.00"), new BigDecimal("8.00")),
+    GPT_4O("gpt-4o", AIProvider.OPENAI, new BigDecimal("2.50"), new BigDecimal("10.00")),
+    GPT_4O_MINI("gpt-4o-mini", AIProvider.OPENAI, new BigDecimal("0.15"), new BigDecimal("0.60")),
 
-    DEEPSEEK_CHAT("deepseek-chat", AIProvider.DEEPSEEK, 0.27, 1.10),
-    DEEPSEEK_REASONER("deepseek-reasoner", AIProvider.DEEPSEEK, 0.55, 2.19),
+    DEEPSEEK_CHAT("deepseek-chat", AIProvider.DEEPSEEK, new BigDecimal("0.27"), new BigDecimal("1.10")),
+    DEEPSEEK_REASONER("deepseek-reasoner", AIProvider.DEEPSEEK, new BigDecimal("0.55"), new BigDecimal("2.19")),
 
-    GEMINI_PRO("gemini-2.5-pro", AIProvider.GOOGLE, 1.25, 10.00),
-    GEMINI_FLASH("gemini-2.5-flash", AIProvider.GOOGLE, 0.30, 2.50),
+    GEMINI_PRO("gemini-2.5-pro", AIProvider.GOOGLE, new BigDecimal("1.25"), new BigDecimal("10.00")),
+    GEMINI_FLASH("gemini-2.5-flash", AIProvider.GOOGLE, new BigDecimal("0.30"), new BigDecimal("2.50")),
     ;
 
     private final String modelName;
     private final AIProvider provider;
-    private final double inputPricePerMillionTokens;
-    private final double outputPricePerMillionTokens;
+    private final BigDecimal inputPricePerMillionTokens;
+    private final BigDecimal outputPricePerMillionTokens;
 
-    AIModel(String modelName, AIProvider provider, double inputPricePerMillionTokens, double outputPricePerMillionTokens) {
+    AIModel(String modelName, AIProvider provider, BigDecimal inputPricePerMillionTokens, BigDecimal outputPricePerMillionTokens) {
         this.modelName = modelName;
         this.provider = provider;
         this.inputPricePerMillionTokens = inputPricePerMillionTokens;
@@ -41,11 +43,11 @@ public enum AIModel {
         return provider;
     }
 
-    public double getInputPricePerMillionTokens() {
+    public BigDecimal getInputPricePerMillionTokens() {
         return inputPricePerMillionTokens;
     }
 
-    public double getOutputPricePerMillionTokens() {
+    public BigDecimal getOutputPricePerMillionTokens() {
         return outputPricePerMillionTokens;
     }
 }
