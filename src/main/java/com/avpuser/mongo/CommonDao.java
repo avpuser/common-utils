@@ -341,4 +341,74 @@ public class CommonDao<T extends DbEntity> {
         return mongoCollection.countDocuments();
     }
 
+    /**
+     * Finds entities with Bson filter, sorting, and pagination.
+     * <p>
+     * ⚠ WARNING: This method is best suited for admin panels, dashboards, and exploratory tools.
+     * Avoid using it in performance-critical production paths unless appropriate indexes exist for the filters and sorting.
+     * </p>
+     *
+     * @param limit      Maximum number of documents to return. Must be > 0.
+     * @param skip       Number of documents to skip for pagination. Use 0 for the first page.
+     * @param filter     Bson filter for querying. Can be null or Filters.empty().
+     * @param sortFields A map of field names to sort order (true = ascending, false = descending). Can be null or empty.
+     * @return List of matched and sorted documents according to provided parameters.
+     */
+    public List<T> findWithBsonFilterAndSort(int limit, int skip,
+                                             Bson filter,
+                                             Map<String, Boolean> sortFields) {
+        logger.info("Find {} with limit={}, skip={}, filter={}, sortFields={}",
+                dbEntityName, limit, skip, filter, sortFields);
+
+        // 1. Validate limit
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit must be > 0");
+        }
+
+        // 2. Use provided filter or empty filter
+        Bson finalFilter = (filter != null) ? filter : Filters.empty();
+
+        // 3. Build sort
+        Bson sort = null;
+        if (sortFields != null && !sortFields.isEmpty()) {
+            List<Bson> sortList = new ArrayList<>();
+            for (Map.Entry<String, Boolean> entry : sortFields.entrySet()) {
+                sortList.add(entry.getValue()
+                        ? Sorts.ascending(entry.getKey())
+                        : Sorts.descending(entry.getKey()));
+            }
+            sort = Sorts.orderBy(sortList);
+        }
+
+        // 4. Build query
+        var query = mongoCollection.find(finalFilter)
+                .limit(limit)
+                .skip(skip);
+
+        if (sort != null) {
+            query = query.sort(sort);
+        }
+
+        // 5. Fetch results
+        List<T> result = new ArrayList<>();
+        try (MongoCursor<T> cursor = query.iterator()) {
+            while (cursor.hasNext()) {
+                result.add(cursor.next());
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Counts documents matching the provided Bson filter.
+     *
+     * @param filter Bson filter for querying. Can be null or Filters.empty().
+     * @return Count of documents matching the filter.
+     */
+    public long countWithBsonFilter(Bson filter) {
+        Bson finalFilter = (filter != null) ? filter : Filters.empty();
+        return mongoCollection.countDocuments(finalFilter);
+    }
+
 }

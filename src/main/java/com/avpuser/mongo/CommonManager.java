@@ -99,4 +99,12 @@ public abstract class CommonManager<T extends DbEntity> {
         return dao.findWithFiltersAndSort(limit, skip, filters, sortFields);
     }
 
+    public List<T> findWithBsonFilterAndSort(int limit, int skip, org.bson.conversions.Bson filter, Map<String, Boolean> sortFields) {
+        return dao.findWithBsonFilterAndSort(limit, skip, filter, sortFields);
+    }
+
+    public long countWithBsonFilter(org.bson.conversions.Bson filter) {
+        return dao.countWithBsonFilter(filter);
+    }
+
 }
