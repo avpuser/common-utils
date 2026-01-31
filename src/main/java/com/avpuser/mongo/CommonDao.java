@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.bson.UuidRepresentation;
 import org.bson.conversions.Bson;
 import org.mongojack.JacksonMongoCollection;
+import org.mongojack.MongoCollection;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -52,6 +53,15 @@ public class CommonDao<T extends DbEntity> {
 
     public final Class<T> getType() {
         return type;
+    }
+
+    /**
+     * Returns the MongoDB collection name used by this DAO (MongoJack/Codec).
+     * Uses @MongoCollection(name) on the entity type if present; otherwise the type's simple name.
+     */
+    public final String getCollectionName() {
+        MongoCollection ann = type.getAnnotation(MongoCollection.class);
+        return ann != null ? ann.name() : type.getSimpleName();
     }
 
     public final String insert(T entity) {
