@@ -35,12 +35,14 @@ public class CommonDao<T extends DbEntity> {
     private final static Logger logger = LogManager.getLogger(CommonDao.class);
 
     protected final JacksonMongoCollection<T> mongoCollection;
+    protected final MongoDatabase database;
 
     private final Class<T> type;
     private final Clock clock;
     private final String dbEntityName;
 
     public CommonDao(MongoDatabase database, Class<T> type, Clock clock) {
+        this.database = database;
         this.type = type;
         this.clock = clock;
         this.dbEntityName = type.getSimpleName();
@@ -419,6 +421,33 @@ public class CommonDao<T extends DbEntity> {
     public long countWithBsonFilter(Bson filter) {
         Bson finalFilter = (filter != null) ? filter : Filters.empty();
         return mongoCollection.countDocuments(finalFilter);
+    }
+
+    /**
+     * Returns distinct values for a field matching the optional filter.
+     *
+     * @param fieldName   field to get distinct values for
+     * @param filter      optional Bson filter, can be null
+     * @param resultClass class of the result values (e.g. String.class for userId)
+     * @return list of distinct values
+     */
+    public <R> List<R> distinct(String fieldName, Bson filter, Class<R> resultClass) {
+        Bson finalFilter = (filter != null) ? filter : Filters.empty();
+        List<R> result = new ArrayList<>();
+        mongoCollection.distinct(fieldName, finalFilter, resultClass).into(result);
+        return result;
+    }
+
+    /**
+     * Runs an aggregation pipeline and returns raw documents.
+     * Use for custom aggregations that output non-entity documents (e.g. $group).
+     *
+     * @param pipeline aggregation pipeline stages
+     * @return list of result documents
+     */
+    public List<org.bson.Document> runAggregation(List<Bson> pipeline) {
+        return database.getCollection(getCollectionName()).aggregate(pipeline)
+                .into(new ArrayList<>());
     }
 
 }

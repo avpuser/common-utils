@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.bson.conversions.Bson;
+
 public abstract class CommonManager<T extends DbEntity> {
 
     protected static final Logger logger = LogManager.getLogger(CommonManager.class);
@@ -105,6 +107,14 @@ public abstract class CommonManager<T extends DbEntity> {
 
     public long countWithBsonFilter(org.bson.conversions.Bson filter) {
         return dao.countWithBsonFilter(filter);
+    }
+
+    public <R> List<R> distinct(String fieldName, Bson filter, Class<R> resultClass) {
+        return dao.distinct(fieldName, filter, resultClass);
+    }
+
+    public List<org.bson.Document> runAggregation(List<Bson> pipeline) {
+        return dao.runAggregation(pipeline);
     }
 
 }
