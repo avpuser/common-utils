@@ -151,7 +151,7 @@ public class S3StorageClient {
             return uploadFile(temp.getAbsolutePath(), remoteFilePath, contentType, contentEncoding, contentDisposition);
         } finally {
             if (!temp.delete()) {
-                logger.error("Unable to delete temporary file: {}", temp.getAbsolutePath());
+                logger.error("Unable to delete temporary file");
             }
         }
     }
@@ -176,8 +176,8 @@ public class S3StorageClient {
                              String contentType, String contentEncoding, String contentDisposition) {
         File file = new File(localFilePath);
         if (!file.exists()) {
-            logger.error("File not found: " + localFilePath);
-            throw new IllegalArgumentException("File not found: " + localFilePath);
+            logger.error("File not found");
+            throw new IllegalArgumentException("File not found");
         }
 
         try {
@@ -191,11 +191,10 @@ public class S3StorageClient {
 
             PutObjectRequest putObjectRequest = b.build();
 
-            logger.info("Uploading file to S3: {} (ct={}, enc={})",
-                    remoteFilePath, contentType, contentEncoding);
+            logger.info("Uploading file to S3: (ct={}, enc={})", contentType, contentEncoding);
 
             PutObjectResponse putObjectResponse = s3Client.putObject(putObjectRequest, Paths.get(localFilePath));
-            logger.info("File successfully uploaded to S3: {}", remoteFilePath);
+            logger.info("File successfully uploaded to S3");
             return buildS3Url(remoteFilePath);
         } catch (S3Exception e) {
             logger.error("Error uploading file: " + e.awsErrorDetails().errorMessage(), e);
@@ -210,8 +209,7 @@ public class S3StorageClient {
     public String uploadFileMultipart(String localFilePath, String remoteFilePath) {
         File file = new File(localFilePath);
         if (!file.exists()) {
-            logger.error("File not found: {}", localFilePath);
-            throw new IllegalArgumentException("File not found: " + localFilePath);
+            throw new IllegalArgumentException("File not found");
         }
 
         boolean gz = isGzipKey(remoteFilePath);
@@ -237,7 +235,7 @@ public class S3StorageClient {
         FileUpload upload = transferManager.uploadFile(request);
         upload.completionFuture().join();
 
-        logger.info("Multipart upload completed: {}", remoteFilePath);
+        logger.info("Multipart upload completed");
         return buildS3Url(remoteFilePath);
     }
 
@@ -257,14 +255,14 @@ public class S3StorageClient {
                     .build();
 
             s3Client.headObject(headObjectRequest);
-            logger.info("File exists on S3: " + remoteRelativePath);
+            logger.info("File exists on S3");
             return true;
         } catch (S3Exception e) {
             if ("NoSuchKey".equals(e.awsErrorDetails().errorCode())) {
-                logger.info("File does not exist on S3: " + remoteRelativePath);
+                logger.info("File does not exist on S3");
                 return false;
             }
-            logger.error("Error checking file existence on S3: " + e.awsErrorDetails().errorMessage(), e);
+            logger.error("Error checking file existence on S3", e);
             throw e;
         }
     }
@@ -276,13 +274,13 @@ public class S3StorageClient {
                     .key(remoteRelativePath)
                     .build();
 
-            logger.info("Deleting file from S3: " + remoteRelativePath);
+            logger.info("Deleting file from S3");
 
             DeleteObjectResponse deleteObjectResponse = s3Client.deleteObject(deleteObjectRequest);
 
-            logger.info("File successfully deleted from S3: " + remoteRelativePath);
+            logger.info("File successfully deleted from S3");
         } catch (S3Exception e) {
-            logger.error("Error deleting file: " + e.awsErrorDetails().errorMessage(), e);
+            logger.error("Error deleting file", e);
         }
     }
 
@@ -322,7 +320,7 @@ public class S3StorageClient {
 
             PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(presignRequest);
 
-            logger.info("Generated pre-signed URL: " + presignedRequest.url());
+            logger.info("Generated pre-signed URL");
 
             return presignedRequest.url().toString();
         }
