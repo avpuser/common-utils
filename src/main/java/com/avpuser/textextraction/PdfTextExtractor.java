@@ -44,7 +44,7 @@ public class PdfTextExtractor {
         try (PDDocument document = Loader.loadPDF(file)) {
             return extractTextFromDocument(document);
         } catch (IOException e) {
-            logger.error("Failed to load PDF from file: " + filePath, e);
+            logger.error("Failed to load PDF from file", e);
             return Optional.empty();
         }
     }
@@ -59,7 +59,7 @@ public class PdfTextExtractor {
                 return extractTextFromDocument(document);
             }
         } catch (IOException e) {
-            logger.error("Failed to load PDF from URL: " + fileUrl, e);
+            logger.error("Failed to load PDF from URL", e);
             return Optional.empty();
         }
     }

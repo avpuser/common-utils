@@ -35,7 +35,8 @@ public class GoogleAIApi implements AIApi {
 
     @Override
     public String execCompletions(String userPrompt, String systemPrompt, AIModel model) {
-        logger.info("Google Gemini exec: model={}, userPrompt={}", model.getModelName(), userPrompt);
+        int promptLen = (userPrompt != null ? userPrompt.length() : 0) + (systemPrompt != null ? systemPrompt.length() : 0);
+        logger.info("Google Gemini exec: model={}, promptLength={}", model.getModelName(), promptLen);
 
         String url = String.format("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
                 model.getModelName(), apiKey);

@@ -95,8 +95,10 @@ public class DefaultAiExecutor implements AiExecutor {
         if (StringUtils.isBlank(systemPrompt)) {
             throw new IllegalArgumentException("systemPrompt must not be blank");
         }
-        logger.info("userPrompt: {}", userPrompt);
-        logger.info("systemPrompt: {}", systemPrompt);
+        int userLen = userPrompt.length();
+        int systemLen = systemPrompt.length();
+        logger.info("LLM call: model={}, provider={}, promptLength={}, systemPromptLength={}",
+                model.getModelName(), model.getProvider(), userLen, systemLen);
         return execCompletions(userPrompt, systemPrompt, model);
     }
 

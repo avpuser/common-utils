@@ -14,7 +14,7 @@ public class GeminiAiResponseParser {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static AiResponse extractAiResponse(String rawResponse, AIModel model) {
-        logger.info("jsonResponse (Gemini): {}", rawResponse);
+        logger.info("Gemini response: responseLength={}", rawResponse != null ? rawResponse.length() : 0);
 
         JsonNode rootNode;
         try {
@@ -27,7 +27,7 @@ public class GeminiAiResponseParser {
         String contentResponse;
         try {
             contentResponse = extractContentAsString(rootNode);
-            logger.info("contentAsString (Gemini): {}", contentResponse);
+            logger.info("Gemini content: responseLength={}", contentResponse != null ? contentResponse.length() : 0);
         } catch (Exception e) {
             logger.warn("Failed to extract content from Gemini JSON response, using raw response", e);
             contentResponse = rawResponse;
@@ -81,13 +81,13 @@ public class GeminiAiResponseParser {
                     continue;
                 }
 
-                // If there is other content — log and skip
-                logger.debug("Gemini part without text field: {}", part.toString());
+                // If there is other content — log and skip (do not log part content)
+                logger.debug("Gemini part without text field — skipping.");
             }
         }
 
         String contentText = result.toString();
-        logger.info(contentText);
+        logger.debug("Gemini content length: {}", contentText != null ? contentText.length() : 0);
         return contentText;
     }
 

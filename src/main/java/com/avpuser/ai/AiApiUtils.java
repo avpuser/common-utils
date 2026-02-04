@@ -1,5 +1,6 @@
 package com.avpuser.ai;
 
+import com.avpuser.utils.LogSanitizerUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +25,7 @@ public class AiApiUtils {
             logger.error("Response from AI is cut off.");
         }
 
-        logger.info("Response body: {}", body);
+        logger.info("AI response body: length={}", body != null ? body.length() : 0);
         return body;
     }
 
@@ -37,7 +38,7 @@ public class AiApiUtils {
         }
 
         String message = extractApiErrorMessage(body);
-        logger.error("{} API error. Status: {}, Message: {}", aiProvider.name(), status, message);
+        logger.error("{} API error. Status: {}, Message: {}", aiProvider.name(), status, LogSanitizerUtils.sanitizeExceptionMessage(message));
         throw new AiApiException(status, message, aiProvider);
     }
 
@@ -67,7 +68,7 @@ public class AiApiUtils {
                 return (String) error.getOrDefault("message", "Unknown error");
             }
         } catch (Exception e) {
-            logger.warn("Failed to parse error body: {}", body);
+            logger.warn("Failed to parse error body: length={}", body != null ? body.length() : 0);
         }
         return "Unknown API error";
     }

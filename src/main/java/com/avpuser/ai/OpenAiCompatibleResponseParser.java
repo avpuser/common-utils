@@ -14,7 +14,7 @@ public class OpenAiCompatibleResponseParser {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static AiResponse extractAiResponse(String rawResponse, AIModel model) {
-        logger.info("jsonResponse: {}", rawResponse);
+        logger.info("OpenAI response: responseLength={}", rawResponse != null ? rawResponse.length() : 0);
 
         JsonNode rootNode;
         try {
@@ -25,7 +25,7 @@ public class OpenAiCompatibleResponseParser {
         }
 
         String contentResponse = extractContentAsString(rootNode);
-        logger.info("contentAsString: {}", contentResponse);
+        logger.info("OpenAI content: responseLength={}", contentResponse != null ? contentResponse.length() : 0);
 
         Integer inputTokens = extractInputTokens(rootNode);
         Integer outputTokens = extractOutputTokens(rootNode);
@@ -56,7 +56,7 @@ public class OpenAiCompatibleResponseParser {
         JsonNode messageNode = rootNode.path("choices").get(0).path("message").path("content");
 
         String content = messageNode.asText();
-        logger.info(content);
+        logger.debug("OpenAI content length: {}", content != null ? content.length() : 0);
         return content;
     }
 

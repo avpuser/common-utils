@@ -1,6 +1,7 @@
 package com.avpuser.telegram;
 
 import com.avpuser.utils.JsonUtils;
+import com.avpuser.utils.LogSanitizerUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
@@ -54,7 +55,7 @@ public class TelegramBotApi {
     //caption - Audio caption, 0-1024 characters after entities parsing
     public String sendAudioFromFile(String chatId, String audioTitle, String audioPerformer, Duration duration,
                                     String filePath, String caption, Optional<String> thumbnailFile) {
-        logger.info("Sending audio to telegram chat: " + chatId + ". File: " + filePath);
+        logger.info("Sending audio to telegram chat, file: length={}", filePath != null ? filePath.length() : 0);
         HttpEntity entity = TelegramHttpUtils.buildHttpEntityForSendAudioFromFile(chatId, audioTitle, audioPerformer, duration,
                 filePath, caption, thumbnailFile);
         return TelegramHttpUtils.sendAudioAndGetFileId(entity, sendAudioUrl);
@@ -62,21 +63,21 @@ public class TelegramBotApi {
 
     public String sendAudioFromUrl(String chatId, String audioTitle, String audioPerformer, Duration duration,
                                    String fileUrl, String caption, Optional<String> thumbnailFile) {
-        logger.info("Sending audio to telegram chat: " + chatId + ". URL: " + fileUrl);
+        logger.info("Sending audio to telegram chat, url: masked");
         HttpEntity entity = TelegramHttpUtils.buildHttpEntityForSendAudioFromUrl(chatId, audioTitle, audioPerformer, duration,
                 fileUrl, caption, thumbnailFile);
         return TelegramHttpUtils.sendAudioAndGetFileId(entity, sendAudioUrl);
     }
 
     public String sendAudioFromFileId(String chatId, String fileId, String caption) {
-        logger.info("Sending audio to telegram chat: " + chatId + ". FileId: " + fileId);
+        logger.info("Sending audio to telegram chat, fileId: present");
         HttpEntity entity = TelegramHttpUtils.buildHttpEntityForSendAudioFromFileId(chatId, fileId, caption);
         return TelegramHttpUtils.sendAudioAndGetFileId(entity, sendAudioUrl);
     }
 
     // https://core.telegram.org/bots/api#editmessagetext
     public void editMessageText(long messageId, String message, String chatId, ParseMode parseMode) {
-        logger.info("Editing message in Telegram chat: " + chatId + ", messageId: " + messageId);
+        logger.info("Editing message in Telegram chat, messageId={}", messageId);
         String url = baseApiUrl + "editMessageText";
 
         message = TelegramUtils.abbreviate(message, MAX_TELEGRAM_TEXT_LENGTH, parseMode);
@@ -91,7 +92,7 @@ public class TelegramBotApi {
             // Execute the HTTP request
             try (CloseableHttpResponse response = client.execute(post)) {
                 String responseBody = EntityUtils.toString(response.getEntity());
-                logger.info("Telegram response: " + responseBody);
+                logger.debug("Telegram editMessageText response: length={}", responseBody != null ? responseBody.length() : 0);
 
                 // Parse JSON response
                 ObjectMapper objectMapper = new ObjectMapper();
@@ -121,8 +122,7 @@ public class TelegramBotApi {
     //https://core.telegram.org/bots/api#sendmessage
     //return message_id
     public long sendMessage(String message, String chatId, ParseMode parseMode) {
-        logger.info("Sending message to telegram chat: " + chatId);
-        logger.info("Sending message: " + message);
+        logger.info("Sending message to telegram chat, messageLength={}", message != null ? message.length() : 0);
         String url = baseApiUrl + "sendMessage";
 
         message = TelegramUtils.abbreviate(message, MAX_TELEGRAM_TEXT_LENGTH, parseMode);
@@ -135,7 +135,7 @@ public class TelegramBotApi {
             post.setEntity(entity);
             try (CloseableHttpResponse response = client.execute(post)) {
                 String responseBody = EntityUtils.toString(response.getEntity());
-                logger.info("Telegram response: " + responseBody);
+                logger.debug("Telegram sendMessage response: length={}", responseBody != null ? responseBody.length() : 0);
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonResponse = objectMapper.readTree(responseBody);
@@ -147,7 +147,7 @@ public class TelegramBotApi {
                 return messageId;
             }
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            logger.error("Telegram sendMessage failed: {}", LogSanitizerUtils.sanitizeExceptionMessage(e.getMessage()), e);
             throw new RuntimeException(e);
         }
     }

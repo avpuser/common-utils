@@ -1,5 +1,6 @@
 package com.avpuser.telegram;
 
+import com.avpuser.utils.LogSanitizerUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
@@ -120,7 +121,7 @@ public class TelegramHttpUtils {
             post.setEntity(entity);
             try (CloseableHttpResponse response = client.execute(post)) {
                 String responseString = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-                logger.info("Response from Telegram: " + responseString);
+                logger.info("Telegram sendAudio response: status={}, length={}", response.getStatusLine().getStatusCode(), responseString != null ? responseString.length() : 0);
 
                 // Parse JSON response
                 JSONObject jsonResponse = new JSONObject(responseString);
@@ -129,7 +130,6 @@ public class TelegramHttpUtils {
                 } else {
                     JSONObject result = jsonResponse.getJSONObject("result");
                     String fileId = result.getJSONObject("audio").getString("file_id");
-                    logger.info("Received file_id: " + fileId);
                     return fileId;
                 }
             }
@@ -146,7 +146,7 @@ public class TelegramHttpUtils {
 
             try (CloseableHttpResponse response = client.execute(post)) {
                 String responseBody = EntityUtils.toString(response.getEntity());
-                logger.info("Telegram API response from {}: {}", url, responseBody);
+                logger.info("Telegram API response: url={}, status={}, bodyLength={}", LogSanitizerUtils.maskUrlForLog(url), response.getStatusLine().getStatusCode(), responseBody != null ? responseBody.length() : 0);
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonResponse = objectMapper.readTree(responseBody);
@@ -167,7 +167,7 @@ public class TelegramHttpUtils {
             throw e;
         }
         catch (Exception e) {
-            logger.error("Telegram API POST request failed for URL: " + url, e);
+            logger.error("Telegram API POST request failed for URL: {}", LogSanitizerUtils.maskUrlForLog(url), e);
             throw new RuntimeException(e);
         }
     }

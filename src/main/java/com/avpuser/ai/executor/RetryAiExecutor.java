@@ -1,5 +1,6 @@
 package com.avpuser.ai.executor;
 
+import com.avpuser.utils.LogSanitizerUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -63,7 +64,7 @@ public class RetryAiExecutor implements AiExecutor {
                     logger.error("Retryable failure on model={}", promptRequest.getModel(), t);
                 } else {
                     logger.error("Non-AI error on model={} — stopping retries. cause={}",
-                            promptRequest.getModel(), t.toString(), t);
+                            promptRequest.getModel(), LogSanitizerUtils.sanitizeCause(t), t);
                     throw wrap(t, "Non-retryable failure");
                 }
             }
@@ -75,5 +76,4 @@ public class RetryAiExecutor implements AiExecutor {
         }
         throw wrap(lastError, "All retry steps exhausted");
     }
-
 }

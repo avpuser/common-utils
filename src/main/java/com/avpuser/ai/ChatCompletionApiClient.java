@@ -45,10 +45,8 @@ public class ChatCompletionApiClient implements AIApi {
 
     @Override
     public String execCompletions(String userPrompt, String systemPrompt, AIModel model) {
-        logger.info("userPrompt: {}", userPrompt);
-        logger.info("systemPrompt: {}", systemPrompt);
-        logger.info("aiProvider: {}", aiProvider.name());
-        logger.info("model: {}", model.getModelName());
+        int promptLen = (userPrompt != null ? userPrompt.length() : 0) + (systemPrompt != null ? systemPrompt.length() : 0);
+        logger.info("LLM call: provider={}, model={}, promptLength={}", aiProvider.name(), model.getModelName(), promptLen);
 
         List<Map<String, Object>> messages = AiApiUtils.createMessages(userPrompt, systemPrompt);
 

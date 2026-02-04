@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class TelegramBotMetadataManager {
 
@@ -35,11 +34,7 @@ public class TelegramBotMetadataManager {
             setMyCommands.setCommands(commands);
             bot.execute(setMyCommands);
 
-            String commandsStr = commandsToShow.stream()
-                    .map(TelegramMenuCommand::getCommandName)
-                    .collect(Collectors.joining(", "));
-
-            logger.info("Telegram bot commands registered successfully: " + commandsStr);
+            logger.info("Telegram bot commands registered successfully: count={}", commandsToShow.size());
         } catch (TelegramApiException e) {
             logger.error("Failed to register Telegram bot commands", e);
         }
@@ -66,15 +61,15 @@ public class TelegramBotMetadataManager {
         try {
             String current = getter.get();
             if (current.equals(newValue)) {
-                logger.info("Telegram bot {} already: {}", fieldName, newValue);
+                logger.info("Telegram bot {} already set", fieldName);
                 return;
             }
 
             setter.accept(newValue);
-            logger.info("New telegram bot {}: {}", fieldName, newValue);
+            logger.info("Telegram bot {} updated", fieldName);
         } catch (TelegramRateLimitException e1) {
-            logger.warn("Telegram rate limit reached while updating {}. Retry after {} seconds. Intended value: \"{}\"",
-                    fieldName, e1.getRetryAfterSeconds(), newValue);
+            logger.warn("Telegram rate limit reached while updating {}. Retry after {} seconds",
+                    fieldName, e1.getRetryAfterSeconds());
         } catch (RuntimeException e) {
             logger.error("Error during set telegram " + fieldName, e);
         }
