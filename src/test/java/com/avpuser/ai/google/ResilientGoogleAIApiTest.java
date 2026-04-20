@@ -395,4 +395,268 @@ class ResilientGoogleAIApiTest {
         pool.shutdownNow();
         assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
     }
+
+    @Test
+    void execCompletions_whenAllDelegatesAlreadyInCooldown_doesNotCallAnyDelegate() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1, d2), mutableClock(t));
+
+        api.applyCooldownForTests(d0, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT);
+        api.applyCooldownForTests(d1, Duration.ofHours(1), AiErrorType.QUOTA_EXCEEDED);
+        api.applyCooldownForTests(d2, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT);
+
+        AiApiException ex = assertThrows(AiApiException.class,
+                () -> api.execCompletions("u", "s", AIModel.GEMINI_FLASH));
+
+        assertEquals(AiErrorType.QUOTA_EXCEEDED, ex.getErrorType());
+        verify(d0, never()).execCompletions(any(), any(), any());
+        verify(d1, never()).execCompletions(any(), any(), any());
+        verify(d2, never()).execCompletions(any(), any(), any());
+    }
+
+    @Test
+    void extractTextFromFile_whenAllDelegatesAlreadyInCooldown_doesNotCallAnyDelegate() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        byte[] bytes = new byte[]{4, 5, 6};
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1, d2), mutableClock(t));
+
+        api.applyCooldownForTests(d0, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT);
+        api.applyCooldownForTests(d1, Duration.ofHours(1), AiErrorType.QUOTA_EXCEEDED);
+        api.applyCooldownForTests(d2, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT);
+
+        AiApiException ex = assertThrows(AiApiException.class,
+                () -> api.extractTextFromFile(bytes, "image/png", "p"));
+
+        assertEquals(AiErrorType.QUOTA_EXCEEDED, ex.getErrorType());
+        verify(d0, never()).extractTextFromFile(any(), any(), any());
+        verify(d1, never()).extractTextFromFile(any(), any(), any());
+        verify(d2, never()).extractTextFromFile(any(), any(), any());
+    }
+
+    @Test
+    void execCompletions_afterRateLimitOnFirstAndSuccessOnSecond_nextCallStartsFromThird() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        when(d0.execCompletions(any(), any(), any()))
+                .thenThrow(new AiApiException(429, "r", AIProvider.GOOGLE, AiErrorType.RATE_LIMIT));
+        when(d1.execCompletions(any(), any(), any())).thenReturn("from1");
+        when(d2.execCompletions(any(), any(), any())).thenReturn("from2");
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1, d2), mutableClock(t));
+
+        assertEquals("from1", api.execCompletions("u", "s", AIModel.GEMINI_FLASH));
+        assertEquals("from2", api.execCompletions("u", "s", AIModel.GEMINI_FLASH));
+
+        verify(d0, times(1)).execCompletions(any(), any(), any());
+        verify(d1, times(1)).execCompletions(any(), any(), any());
+        verify(d2, times(1)).execCompletions(any(), any(), any());
+    }
+
+    @Test
+    void execCompletions_skipsMiddleDelegateInCooldown_andUsesNextAvailable() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        when(d0.execCompletions(any(), any(), any())).thenReturn("from0");
+        when(d2.execCompletions(any(), any(), any())).thenReturn("from2");
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1, d2), mutableClock(t));
+        api.applyCooldownForTests(d1, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT);
+
+        assertEquals("from0", api.execCompletions("u", "s", AIModel.GEMINI_FLASH));
+        assertEquals("from2", api.execCompletions("u", "s", AIModel.GEMINI_FLASH));
+
+        verify(d0, times(1)).execCompletions(any(), any(), any());
+        verify(d1, never()).execCompletions(any(), any(), any());
+        verify(d2, times(1)).execCompletions(any(), any(), any());
+    }
+
+    @Test
+    void execCompletions_expiredCooldownOnOneDelegate_doesNotRemoveOtherActiveCooldowns() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        when(d0.execCompletions(any(), any(), any())).thenReturn("from0");
+        when(d1.execCompletions(any(), any(), any())).thenReturn("from1");
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1, d2), mutableClock(t));
+        api.applyCooldownForTests(d0, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT);
+        api.applyCooldownForTests(d2, Duration.ofHours(1), AiErrorType.QUOTA_EXCEEDED);
+
+        t.set(T0.plus(Duration.ofMinutes(21)));
+
+        assertEquals("from0", api.execCompletions("u", "s", AIModel.GEMINI_FLASH));
+        assertNull(api.peekCooldownUntilForTests(d0));
+        assertEquals(T0.plus(Duration.ofHours(1)), api.peekCooldownUntilForTests(d2));
+        assertEquals(1, api.cooldownMapSizeForTests());
+    }
+
+    @Test
+    void extractTextFromFile_nonRetryableAiErrorPropagatesImmediately() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        byte[] bytes = new byte[]{7, 8};
+        when(d0.extractTextFromFile(any(), any(), any()))
+                .thenThrow(new AiApiException(401, "auth", AIProvider.GOOGLE, AiErrorType.AUTH_ERROR));
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1), mutableClock(t));
+
+        AiApiException ex = assertThrows(AiApiException.class,
+                () -> api.extractTextFromFile(bytes, "image/png", "p"));
+
+        assertEquals(AiErrorType.AUTH_ERROR, ex.getErrorType());
+        verify(d0, times(1)).extractTextFromFile(any(), any(), any());
+        verify(d1, never()).extractTextFromFile(any(), any(), any());
+    }
+
+    @Test
+    void extractTextFromFile_runtimeExceptionPropagatesImmediately() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        byte[] bytes = new byte[]{7, 8};
+        when(d0.extractTextFromFile(any(), any(), any()))
+                .thenThrow(new IllegalStateException("boom"));
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1), mutableClock(t));
+
+        assertThrows(IllegalStateException.class,
+                () -> api.extractTextFromFile(bytes, "image/png", "p"));
+
+        verify(d0, times(1)).extractTextFromFile(any(), any(), any());
+        verify(d1, never()).extractTextFromFile(any(), any(), any());
+    }
+
+    @Test
+    void extractTextFromFile_allDelegatesRateLimitedInOneRound_throwsQuotaExceeded() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        byte[] bytes = new byte[]{3};
+        when(d0.extractTextFromFile(any(), any(), any()))
+                .thenThrow(new AiApiException(429, "r0", AIProvider.GOOGLE, AiErrorType.RATE_LIMIT));
+        when(d1.extractTextFromFile(any(), any(), any()))
+                .thenThrow(new AiApiException(429, "r1", AIProvider.GOOGLE, AiErrorType.RATE_LIMIT));
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1), mutableClock(t));
+
+        AiApiException ex = assertThrows(AiApiException.class,
+                () -> api.extractTextFromFile(bytes, "image/png", "p"));
+
+        assertEquals(AiErrorType.QUOTA_EXCEEDED, ex.getErrorType());
+        verify(d0, times(1)).extractTextFromFile(any(), any(), any());
+        verify(d1, times(1)).extractTextFromFile(any(), any(), any());
+    }
+
+    @Test
+    void extractTextFromFile_skipsDelegateStillInCooldownFromRateLimit() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        byte[] bytes = new byte[]{1, 2};
+        when(d0.extractTextFromFile(any(), any(), any()))
+                .thenThrow(new AiApiException(429, "r", AIProvider.GOOGLE, AiErrorType.RATE_LIMIT))
+                .thenReturn("recovered");
+        when(d1.extractTextFromFile(any(), any(), any())).thenReturn("from1");
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1), mutableClock(t));
+
+        assertEquals("from1", api.extractTextFromFile(bytes, "image/png", "p"));
+        t.set(T0.plusSeconds(1));
+        assertEquals("from1", api.extractTextFromFile(bytes, "image/png", "p"));
+        t.set(T0.plus(Duration.ofMinutes(21)));
+        assertEquals("recovered", api.extractTextFromFile(bytes, "image/png", "p"));
+
+        verify(d0, times(2)).extractTextFromFile(any(), any(), any());
+        verify(d1, times(2)).extractTextFromFile(any(), any(), any());
+    }
+
+    @Test
+    void extractTextFromFile_quotaCooldownEndsAfterOneHour() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        byte[] bytes = new byte[]{9, 9};
+        when(d0.extractTextFromFile(any(), any(), any()))
+                .thenThrow(new AiApiException(429, "q", AIProvider.GOOGLE, AiErrorType.QUOTA_EXCEEDED))
+                .thenReturn("ok0");
+        when(d1.extractTextFromFile(any(), any(), any())).thenReturn("ok1");
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1), mutableClock(t));
+
+        assertEquals("ok1", api.extractTextFromFile(bytes, "image/png", "p"));
+        t.set(T0.plus(Duration.ofHours(1)).minus(Duration.ofSeconds(1)));
+        assertEquals("ok1", api.extractTextFromFile(bytes, "image/png", "p"));
+        t.set(T0.plus(Duration.ofHours(1)));
+        assertEquals("ok0", api.extractTextFromFile(bytes, "image/png", "p"));
+    }
+
+    @Test
+    void extractTextFromFile_afterSuccessOnSecondDelegate_nextCallStartsFromThird() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        byte[] bytes = new byte[]{2, 4};
+        when(d0.extractTextFromFile(any(), any(), any()))
+                .thenThrow(new AiApiException(429, "r", AIProvider.GOOGLE, AiErrorType.RATE_LIMIT));
+        when(d1.extractTextFromFile(any(), any(), any())).thenReturn("from1");
+        when(d2.extractTextFromFile(any(), any(), any())).thenReturn("from2");
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1, d2), mutableClock(t));
+
+        assertEquals("from1", api.extractTextFromFile(bytes, "image/png", "p"));
+        assertEquals("from2", api.extractTextFromFile(bytes, "image/png", "p"));
+
+        verify(d0, times(1)).extractTextFromFile(any(), any(), any());
+        verify(d1, times(1)).extractTextFromFile(any(), any(), any());
+        verify(d2, times(1)).extractTextFromFile(any(), any(), any());
+    }
+
+    @Test
+    void execCompletions_singleDelegateRateLimited_thenImmediateNextCallDoesNotInvokeDelegateAgain() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        when(d0.execCompletions(any(), any(), any()))
+                .thenThrow(new AiApiException(429, "r", AIProvider.GOOGLE, AiErrorType.RATE_LIMIT));
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0), mutableClock(t));
+
+        assertThrows(AiApiException.class, () -> api.execCompletions("u", "s", AIModel.GEMINI_FLASH));
+        assertThrows(AiApiException.class, () -> api.execCompletions("u", "s", AIModel.GEMINI_FLASH));
+
+        verify(d0, times(1)).execCompletions(any(), any(), any());
+    }
+
+    @Test
+    void extractTextFromFile_singleDelegateQuotaExceeded_thenImmediateNextCallDoesNotInvokeDelegateAgain() {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        byte[] bytes = new byte[]{5};
+        when(d0.extractTextFromFile(any(), any(), any()))
+                .thenThrow(new AiApiException(429, "q", AIProvider.GOOGLE, AiErrorType.QUOTA_EXCEEDED));
+
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0), mutableClock(t));
+
+        assertThrows(AiApiException.class, () -> api.extractTextFromFile(bytes, "image/png", "p"));
+        assertThrows(AiApiException.class, () -> api.extractTextFromFile(bytes, "image/png", "p"));
+
+        verify(d0, times(1)).extractTextFromFile(any(), any(), any());
+    }
+
+    @Test
+    void execCompletions_concurrentCooldownMerge_keepsLongestDeadline() throws Exception {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1), mutableClock(t));
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        Future<?> f1 = pool.submit(() -> api.applyCooldownForTests(d0, Duration.ofHours(1), AiErrorType.QUOTA_EXCEEDED));
+        Future<?> f2 = pool.submit(() -> api.applyCooldownForTests(d0, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT));
+
+        f1.get();
+        f2.get();
+        pool.shutdownNow();
+        assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+
+        assertEquals(T0.plus(Duration.ofHours(1)), api.peekCooldownUntilForTests(d0));
+    }
+
+    @Test
+    void extractTextFromFile_concurrentCooldownMerge_keepsLongestDeadline() throws Exception {
+        AtomicReference<Instant> t = new AtomicReference<>(T0);
+        ResilientGoogleAIApi api = new ResilientGoogleAIApi(List.of(d0, d1), mutableClock(t));
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        Future<?> f1 = pool.submit(() -> api.applyCooldownForTests(d0, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT));
+        Future<?> f2 = pool.submit(() -> api.applyCooldownForTests(d0, Duration.ofHours(1), AiErrorType.QUOTA_EXCEEDED));
+
+        f1.get();
+        f2.get();
+        pool.shutdownNow();
+        assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+
+        Instant actual = api.peekCooldownUntilForTests(d0);
+        assertTrue(actual.equals(T0.plus(Duration.ofHours(1))) || actual.isAfter(T0.plus(Duration.ofHours(1)).minusMillis(1)));
+    }
 }
