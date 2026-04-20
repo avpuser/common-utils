@@ -1,0 +1,15 @@
+package com.avpuser.ai;
+
+public enum AiErrorType {
+    RATE_LIMIT,
+    QUOTA_EXCEEDED,
+    AUTH_ERROR,
+    PERMISSION_DENIED,
+    INVALID_REQUEST,
+    CONTENT_BLOCKED,
+    NOT_FOUND,
+    SERVER_ERROR,
+    TEMPORARY_UNAVAILABLE,
+    NETWORK_ERROR,
+    UNKNOWN
+}

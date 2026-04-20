@@ -38,8 +38,68 @@ public class AiApiUtils {
         }
 
         String message = extractApiErrorMessage(body);
+        AiErrorType errorType = classifyError(status, message);
         logger.error("{} API error. Status: {}, Message: {}", aiProvider.name(), status, LogSanitizerUtils.sanitizeExceptionMessage(message));
-        throw new AiApiException(status, message, aiProvider);
+        throw new AiApiException(status, message, aiProvider, errorType);
+    }
+
+    private static AiErrorType classifyError(int status, String message) {
+        String msg = message == null ? "" : message.toLowerCase();
+
+        if (status == 429) {
+            if (msg.contains("quota")
+                    || msg.contains("exceeded your current quota")
+                    || msg.contains("requests per day")
+                    || msg.contains("rpd")) {
+                return AiErrorType.QUOTA_EXCEEDED;
+            }
+            if (msg.contains("too many requests")
+                    || msg.contains("rate limit")
+                    || msg.contains("requests per minute")
+                    || msg.contains("rpm")) {
+                return AiErrorType.RATE_LIMIT;
+            }
+            return AiErrorType.RATE_LIMIT;
+        }
+
+        if (status == 401) {
+            return AiErrorType.AUTH_ERROR;
+        }
+
+        if (status == 403) {
+            if (msg.contains("safety")
+                    || msg.contains("policy")
+                    || msg.contains("blocked")) {
+                return AiErrorType.CONTENT_BLOCKED;
+            }
+            return AiErrorType.PERMISSION_DENIED;
+        }
+
+        if (status == 404) {
+            return AiErrorType.NOT_FOUND;
+        }
+
+        if (status == 400) {
+            if (msg.contains("safety")
+                    || msg.contains("policy")
+                    || msg.contains("blocked")) {
+                return AiErrorType.CONTENT_BLOCKED;
+            }
+            return AiErrorType.INVALID_REQUEST;
+        }
+
+        if (status == 503
+                || msg.contains("temporarily unavailable")
+                || msg.contains("overloaded")
+                || msg.contains("try again later")) {
+            return AiErrorType.TEMPORARY_UNAVAILABLE;
+        }
+
+        if (status >= 500) {
+            return AiErrorType.SERVER_ERROR;
+        }
+
+        return AiErrorType.UNKNOWN;
     }
 
     public static List<Map<String, Object>> createMessages(String userPrompt, String systemPrompt) {
