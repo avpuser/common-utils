@@ -977,4 +977,9 @@ class ResilientGoogleAIApiTest {
         api.applyCooldownForTests(d2, Duration.ofMinutes(20), AiErrorType.RATE_LIMIT);
         assertEquals(3, api.cooldownMapSizeForTests());
     }
+
+    @Test
+    void delegatesConstructor_rejectsNullClock() {
+        assertThrows(NullPointerException.class, () -> new ResilientGoogleAIApi(List.of(d0), null));
+    }
 }
