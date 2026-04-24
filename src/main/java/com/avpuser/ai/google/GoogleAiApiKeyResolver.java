@@ -14,7 +14,7 @@ public final class GoogleAiApiKeyResolver {
      */
     public static List<String> resolve(String apiKeysRaw, String singleApiKey) {
         if (apiKeysRaw != null && !apiKeysRaw.isBlank()) {
-            List<String> keys = Arrays.stream(apiKeysRaw.split("\\|"))
+            List<String> keys = Arrays.stream(apiKeysRaw.split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .distinct()

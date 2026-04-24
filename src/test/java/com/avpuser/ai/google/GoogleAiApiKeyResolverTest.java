@@ -12,24 +12,24 @@ class GoogleAiApiKeyResolverTest {
     void splitsPipeDelimitedKeys() {
         assertEquals(
                 List.of("a", "b", "c"),
-                GoogleAiApiKeyResolver.resolve("a|b|c", "ignored"));
+                GoogleAiApiKeyResolver.resolve("a,b,c", "ignored"));
     }
 
     @Test
     void trimsSegmentsAndSkipsEmpty() {
         assertEquals(
                 List.of("k1", "k2"),
-                GoogleAiApiKeyResolver.resolve(" k1 | | k2 ", ""));
+                GoogleAiApiKeyResolver.resolve(" k1 , , k2 ", ""));
     }
 
     @Test
     void deduplicatesPreservingOrder() {
         assertEquals(
                 List.of("a", "b", "c"),
-                GoogleAiApiKeyResolver.resolve("a|b|a|c|b", ""));
+                GoogleAiApiKeyResolver.resolve("a,b,a,c,b", ""));
         assertEquals(
                 List.of("dup"),
-                GoogleAiApiKeyResolver.resolve("dup|dup|dup", "ignored"));
+                GoogleAiApiKeyResolver.resolve("dup,dup,dup", "ignored"));
     }
 
     @Test
