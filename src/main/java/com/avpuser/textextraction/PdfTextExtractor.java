@@ -76,4 +76,22 @@ public class PdfTextExtractor {
         }
     }
 
+    public static int countPages(byte[] pdfBytes) {
+        try (PDDocument document = Loader.loadPDF(pdfBytes)) {
+            return document.getNumberOfPages();
+        } catch (Exception e) {
+            logger.warn("Failed to count PDF pages, fallback to 1 page");
+            return 1;
+        }
+    }
+
+    public static int countPages(String filePath) {
+        File file = new File(filePath);
+        try (PDDocument document = Loader.loadPDF(file)) {
+            return document.getNumberOfPages();
+        } catch (Exception e) {
+            logger.warn("Failed to count PDF pages, fallback to 1 page");
+            return 1;
+        }
+    }
 }
