@@ -80,7 +80,7 @@ public class PdfTextExtractor {
         try (PDDocument document = Loader.loadPDF(pdfBytes)) {
             return document.getNumberOfPages();
         } catch (Exception e) {
-            logger.warn("Failed to count PDF pages, fallback to 1 page");
+            logger.error("Failed to count PDF pages, fallback to 1 page");
             return 1;
         }
     }
@@ -90,7 +90,7 @@ public class PdfTextExtractor {
         try (PDDocument document = Loader.loadPDF(file)) {
             return document.getNumberOfPages();
         } catch (Exception e) {
-            logger.warn("Failed to count PDF pages, fallback to 1 page");
+            logger.error("Failed to count PDF pages, fallback to 1 page");
             return 1;
         }
     }
