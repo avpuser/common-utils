@@ -1,5 +1,6 @@
 package ai;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.ai.AIApi;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
@@ -16,6 +17,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
+@MockTest
 
 class DefaultAiExecutorTest {
 

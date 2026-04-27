@@ -1,5 +1,6 @@
 package s3;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.s3.S3StorageClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+@MockTest
 
 class S3StorageClientTest {
 

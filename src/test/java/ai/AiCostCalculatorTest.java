@@ -1,5 +1,6 @@
 package ai;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AiCostCalculator;
 import com.avpuser.ai.executor.AiResponse;
@@ -9,6 +10,7 @@ import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+@MockTest
 
 public class AiCostCalculatorTest {
 

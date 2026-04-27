@@ -1,5 +1,6 @@
 package utils;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.utils.LanguageUtils;
 import com.github.pemistahl.lingua.api.Language;
 import org.junit.jupiter.api.Disabled;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+@MockTest
 
 public class LanguageUtilsTest {
 

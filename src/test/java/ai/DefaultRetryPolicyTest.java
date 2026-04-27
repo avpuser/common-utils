@@ -1,5 +1,6 @@
 package ai;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiApiException;
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.when;
  * Тесты для DefaultRetryPolicy: stepsFor(...) и isRetryable(...),
  * с учётом сигнатуры AiApiException(int, String, AIProvider).
  */
+@MockTest
 class DefaultRetryPolicyTest {
 
     private DefaultRetryPolicy policy;

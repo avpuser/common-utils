@@ -1,5 +1,6 @@
 package ai;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiApiException;
 import com.avpuser.ai.AiApiUtils;
@@ -12,6 +13,7 @@ import java.net.http.HttpResponse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+@MockTest
 
 public class AiApiUtilsTest {
 

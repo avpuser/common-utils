@@ -1,10 +1,12 @@
 package utils;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.utils.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+@MockTest
 
 public class StringUtilsTest {
 

@@ -1,9 +1,11 @@
 package utils;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.utils.LogSanitizerUtils;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+@MockTest
 
 class LogSanitizerUtilsTest {
 

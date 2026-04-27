@@ -1,11 +1,13 @@
 package utils;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.utils.JsonUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+@MockTest
 
 public class JsonUtilsTest {
 

@@ -1,9 +1,11 @@
 package com.avpuser.textextraction;
 
+import com.avpuser.test.MockTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+@MockTest
 
 class ReadableTextCheckerTest {
 
@@ -189,11 +191,14 @@ class ReadableTextCheckerTest {
     void invalidText() {
         String text = """
                 􀀀             
-                                       :D %;E<F + =G, >H -?I  @2 ":J  ;K.< 6  =2/>L  ?I  '2 -AMB  I# =I I+ ?0J 1;4 'N2!C3G C4H CI"02+!0:J 5;K <50#6=O 0>L ?I 75+?I+$;1 )J  6%6  &-'(8) *%    9 P'53J'Q R* SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS\\S]^SS_'STaSUbSVS_WSUcSSXSUSYdSZeSd[ ft___b]a_g'^u]wuvwxccccc dhyidzj[ky|ydl{Tdy{[d||mynyyiy{}|oynipqlrqfnmu~s_gbwabgg'']]^__ccc VX ttt___]]]___ _ggu]x^_ccc ||||||[[[yyy{{{[[[|||yyy||| dyycccd|zz £SaSgSu¤S]aSSaSS¥SS^SSu¡SaSSS¦SS§S¨©ªSS©S«¨SS«¬­®SS©S¯°gS±S~S²³S]S¨_´]Sµ¶SSSSSSSSSSgSSg^SSg'SS]'S SSaS'SS]Sg^S¡SS_~SSSSSSSSSS¢SSgS]SuSw TiÓ×hÔÉ·¹ÆÇ¸ÕÍWÑXYÆ·¿ÈUÎXYXU¼ÆXY¸WVÉÀ½YeYÊeÏWeÁÐ¸ÑW¹Ë¿ÉºÀ»»¼Öº¼½Y½Á¼e½¸¹À»¹¼½ Ò d{d|[[[[dyy ¾¾ÌÌ¿¿ÀÀÂÂÁÁeeÂÂ }Ã{|ÃÃÃdddy|[ ÄÄÄÄÅÅÅÅ TVhÙÆWºÇÉUÁZXÍÙÈÔØX¼XÈÑÈ¿ÈÊeeÉXÝÍYØººXXÁÌÈÖÙ½XÑe¹·ÁÞËYº¼ÑÀ»Õ¿»¹ºÛÁÔ¼ÈÙÀº½·Á¼ÙÜ¼¹ÚÑÛ¿ ÒÒ |dy[[[zz ¿¿¿¿¿¿ÀÀÀÁÁÁeeeÂÂÂ yy[[[|{}Ã|ÃÃdd[z[[yz ÏÄÄÅÂÅ oàW½YÀ·¸ZÌº½Xä¼åVÙæWçèáÚéâÊåXÀêÈÞëáìâßíîYÀï¸ÚèÑïßæYÞð·åeðèïîé ã d[yz ¿¿ÀÁeÂ d[|}Ã|[|z ÄÅ ñn|aX]U_ÃÎaXâ'ôøÛê¦¸óéòÀùé©Yõú°ÆôçÇÙìð®XºéÈ©ÁçªeÙè¯¼çöðï¹ä¸çÀùûÁåüéé ýï þèïîùÿ}î[édæåäéùå 􀀀    ½Ì e¿Â dy[|Ã}[ ÷ÂàÏ î     ' ' ïççð û(èì ïéïæ åüîì ééææ ïåæ ú æ ùïîç ïúé  çùûæ ïåþ çäùì ïéå ûùèì çïåïèûû  çù åèïù çéåçù éùîçûéïîðæåéèäéæéåùùäïåéêùïå 
+                                       :D %;E<F + =G, >H -?I  @2 ":J  ;K.< 6  =2/>L  ?I  '2 -AMB  I# =I I+ ?0J 1;4 'N2!C3G C4H CI"02+!0:J 5;K <50#6=O 0>L ?I 75+?I+$;1 )J  6%6  &-'(8) *%    9 P'53J'Q R* SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS\\S]^SS_'STaSUbSVS_WSUcSSXSUSYdSZeSd[ ft___b]a_g'^u]wuvwxccccc dhyidzj[ky|ydl{Tdy{[d||mynyyiy{}|oynipqlrqfnmu~s_gbwabgg'']]^__ccc VX ttt___]]]___ _g
+
+gu]x^_ccc ||||||[[[yyy{{{[[[|||yyy||| dyycccd|zz £SaSgSu¤S]aSSaSS¥SS^SSu¡SaSSS¦SS§S¨©ªSS©S«¨SS«¬­®SS©S¯°gS±S~S²³S]S¨_´]Sµ¶SSSSSSSSSSgSSg^SSg'SS]'S SSaS'SS]Sg^S¡SS_~SSSSSSSSSS¢SSgS]SuSw TiÓ×hÔÉ·¹ÆÇ¸ÕÍWÑXYÆ·¿ÈUÎXYXU¼ÆXY¸WVÉÀ½YeYÊeÏWeÁÐ¸ÑW¹Ë¿ÉºÀ»»¼Öº¼½Y½Á¼e½¸¹À»¹¼½ Ò d{d|[[[[dyy ¾¾ÌÌ¿¿ÀÀÂÂÁÁeeÂÂ }Ã{|ÃÃÃdddy|[ ÄÄÄÄÅÅÅÅ TVhÙÆWºÇÉUÁZXÍÙÈÔØX¼XÈÑÈ¿ÈÊeeÉXÝÍYØººXXÁÌÈÖÙ½XÑe¹·ÁÞËYº¼ÑÀ»Õ¿»¹ºÛÁÔ¼ÈÙÀº½·Á¼ÙÜ¼¹ÚÑÛ¿ ÒÒ |dy[[[zz ¿¿¿¿¿¿ÀÀÀÁÁÁeeeÂÂÂ yy[[[|{}Ã|ÃÃdd[z[[yz ÏÄÄÅÂÅ oàW½YÀ·¸ZÌº½Xä¼åVÙæWçèáÚéâÊåXÀêÈÞëáìâßíîYÀï¸ÚèÑïßæYÞð·åeðèïîé ã d[yz ¿¿ÀÁeÂ d[|}Ã|[|z ÄÅ ñn|aX]U_ÃÎaXâ'ôøÛê¦¸óéòÀùé©Yõú°ÆôçÇÙìð®XºéÈ©ÁçªeÙè¯¼çöðï¹ä¸çÀùûÁåüéé ýï þèïîùÿ}î[édæåäéùå 􀀀    ½Ì e¿Â dy[|Ã}[ ÷ÂàÏ î     ' ' ïççð û(èì ïéïæ åüîì ééææ ïåæ ú æ ùïîç ïúé  çùûæ ïåþ çäùì ïéå ûùèì çïåïèûû  çù åèïù çéåçù éùîçûéïîðæåéèäéæéåùùäïåéêùïå 
                 éú çìð     ï ç  ï   +) 􀀀 ç, 􀀀    ì􀀀æ!î*"ï#
                 $%􀀀&       \s
                 ïû  äåæçèéåêëìíîïèïæðåðèïîé
-                ñ^_~_u^_]u^'u wa_-'u]aac.XVT[/[""";
+                ñ^_
+~_u^_]u^'u wa_-'u]aac.XVT[/[""";
         assertFalse(ReadableTextChecker.looksLikeReadableText(text));
     }
 

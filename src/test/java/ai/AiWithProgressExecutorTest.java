@@ -1,5 +1,6 @@
 package ai;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.executor.AiExecutor;
 import com.avpuser.ai.executor.AiPromptRequest;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+@MockTest
 
 class AiWithProgressExecutorTest {
 

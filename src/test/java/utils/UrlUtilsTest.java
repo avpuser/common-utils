@@ -1,8 +1,10 @@
 package utils;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.utils.UrlUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+@MockTest
 
 public class UrlUtilsTest {
 

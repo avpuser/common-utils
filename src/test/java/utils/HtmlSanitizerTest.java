@@ -1,9 +1,11 @@
 package utils;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.utils.HtmlSanitizer;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+@MockTest
 
 public class HtmlSanitizerTest {
 

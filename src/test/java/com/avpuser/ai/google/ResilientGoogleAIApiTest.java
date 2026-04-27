@@ -1,5 +1,6 @@
 package com.avpuser.ai.google;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiApiException;
@@ -32,6 +33,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+@MockTest
 
 class ResilientGoogleAIApiTest {
 

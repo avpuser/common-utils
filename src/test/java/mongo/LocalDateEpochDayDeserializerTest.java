@@ -1,5 +1,6 @@
 package mongo;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.mongo.typeconverter.LocalDateEpochDayDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -12,6 +13,7 @@ import java.time.format.DateTimeParseException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+@MockTest
 
 class LocalDateEpochDayDeserializerTest {
 

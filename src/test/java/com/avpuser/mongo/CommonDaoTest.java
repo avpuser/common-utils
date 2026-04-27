@@ -1,5 +1,6 @@
 package com.avpuser.mongo;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.mongo.exception.DuplicateKeyException;
 import com.avpuser.mongo.exception.EntityNotFoundException;
 import com.avpuser.mongo.exception.VersionConflictException;
@@ -34,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+@MockTest
 
 class CommonDaoTest {
 

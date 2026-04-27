@@ -1,5 +1,6 @@
 package mongo;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.mongo.typeconverter.InstantDateDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+@MockTest
 
 class InstantDateDeserializerTest {
 

@@ -1,5 +1,6 @@
 package ai;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.executor.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +11,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+@MockTest
 
 class RetryAiExecutorTest {
 

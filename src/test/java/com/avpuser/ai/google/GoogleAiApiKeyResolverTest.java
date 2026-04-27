@@ -1,10 +1,12 @@
 package com.avpuser.ai.google;
 
+import com.avpuser.test.MockTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+@MockTest
 
 class GoogleAiApiKeyResolverTest {
 

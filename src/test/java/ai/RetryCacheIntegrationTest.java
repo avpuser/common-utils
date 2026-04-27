@@ -1,5 +1,6 @@
 package ai;
 
+import com.avpuser.test.MockTest;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiApiException;
@@ -17,6 +18,7 @@ import static org.mockito.Mockito.*;
 /**
  * E2E mock test: RetryAiExecutor + CacheAiExecutor integration with fallback and cache semantics.
  */
+@MockTest
 class RetryCacheIntegrationTest {
 
     private AiExecutor innerDelegate;          // "real" low-level executor (e.g., DefaultAiExecutor)
