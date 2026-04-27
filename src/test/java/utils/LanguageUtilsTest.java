@@ -2,12 +2,12 @@ package utils;
 
 import com.avpuser.utils.LanguageUtils;
 import com.github.pemistahl.lingua.api.Language;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LanguageUtilsTest {
 
@@ -28,7 +28,7 @@ public class LanguageUtilsTest {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testDetectFrench() {
         String text = "Bonjour, comment ça va? Il fait beau aujourd'hui à Paris.";
         Optional<Language> detected = LanguageUtils.detectLanguage(text);

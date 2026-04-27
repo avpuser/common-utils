@@ -1,8 +1,8 @@
 package utils;
 
 import com.avpuser.utils.StringUtils;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -12,10 +12,10 @@ public class StringUtilsTest {
     public void abbreviateTest() {
         String message = "Это пример длинного сообщения, которое нужно обрезать до определенной длины.";
 
-        Assert.assertEquals("Это пример длинного сообщен...", StringUtils.abbreviate(message, 30));
-        Assert.assertEquals("Это пример д...", StringUtils.abbreviate(message, 15));
-        Assert.assertEquals("Это при...", StringUtils.abbreviate(message, 10));
-        Assert.assertEquals(30, StringUtils.abbreviate(message, 30).length());
+        Assertions.assertEquals("Это пример длинного сообщен...", StringUtils.abbreviate(message, 30));
+        Assertions.assertEquals("Это пример д...", StringUtils.abbreviate(message, 15));
+        Assertions.assertEquals("Это при...", StringUtils.abbreviate(message, 10));
+        Assertions.assertEquals(30, StringUtils.abbreviate(message, 30).length());
     }
 
     @Test
@@ -145,35 +145,35 @@ public class StringUtilsTest {
 
     @Test
     public void testNormalizeSpaces() {
-        Assert.assertEquals("This is a test", StringUtils.normalizeSpaces("   This   is   a   test   "));
-        Assert.assertEquals("Hello world", StringUtils.normalizeSpaces("Hello\t\tworld"));
-        Assert.assertEquals("Line one Line two", StringUtils.normalizeSpaces("Line one\nLine two"));
-        Assert.assertEquals("SingleWord", StringUtils.normalizeSpaces("  SingleWord  "));
-        Assert.assertEquals("", StringUtils.normalizeSpaces(""));
-        Assert.assertNull(StringUtils.normalizeSpaces(null));
-        Assert.assertEquals("A B C", StringUtils.normalizeSpaces("A \t  B   \n C"));
-        Assert.assertEquals("", StringUtils.normalizeSpaces("\t \n \r "));
-        Assert.assertEquals("Привет мир", StringUtils.normalizeSpaces("  Привет     мир  "));
-        Assert.assertEquals("Hello !", StringUtils.normalizeSpaces("  Hello     !  "));
-        Assert.assertEquals("A B", StringUtils.normalizeSpaces("A\u2003B")); // em space
-        Assert.assertEquals("Hello 世界", StringUtils.normalizeSpaces("Hello   \t   世界"));
+        Assertions.assertEquals("This is a test", StringUtils.normalizeSpaces("   This   is   a   test   "));
+        Assertions.assertEquals("Hello world", StringUtils.normalizeSpaces("Hello\t\tworld"));
+        Assertions.assertEquals("Line one Line two", StringUtils.normalizeSpaces("Line one\nLine two"));
+        Assertions.assertEquals("SingleWord", StringUtils.normalizeSpaces("  SingleWord  "));
+        Assertions.assertEquals("", StringUtils.normalizeSpaces(""));
+        Assertions.assertNull(StringUtils.normalizeSpaces(null));
+        Assertions.assertEquals("A B C", StringUtils.normalizeSpaces("A \t  B   \n C"));
+        Assertions.assertEquals("", StringUtils.normalizeSpaces("\t \n \r "));
+        Assertions.assertEquals("Привет мир", StringUtils.normalizeSpaces("  Привет     мир  "));
+        Assertions.assertEquals("Hello !", StringUtils.normalizeSpaces("  Hello     !  "));
+        Assertions.assertEquals("A B", StringUtils.normalizeSpaces("A\u2003B")); // em space
+        Assertions.assertEquals("Hello 世界", StringUtils.normalizeSpaces("Hello   \t   世界"));
     }
 
     @Test
     public void testCapitalizeFirstLetter() {
-        Assert.assertEquals("Hello", StringUtils.capitalizeFirstLetter("hello"));
-        Assert.assertEquals("Test", StringUtils.capitalizeFirstLetter("TEST"));
-        Assert.assertEquals("Java", StringUtils.capitalizeFirstLetter("jAVA"));
-        Assert.assertEquals("X", StringUtils.capitalizeFirstLetter("x"));
-        Assert.assertEquals("", StringUtils.capitalizeFirstLetter(""));
-        Assert.assertNull(StringUtils.capitalizeFirstLetter(null));
+        Assertions.assertEquals("Hello", StringUtils.capitalizeFirstLetter("hello"));
+        Assertions.assertEquals("Test", StringUtils.capitalizeFirstLetter("TEST"));
+        Assertions.assertEquals("Java", StringUtils.capitalizeFirstLetter("jAVA"));
+        Assertions.assertEquals("X", StringUtils.capitalizeFirstLetter("x"));
+        Assertions.assertEquals("", StringUtils.capitalizeFirstLetter(""));
+        Assertions.assertNull(StringUtils.capitalizeFirstLetter(null));
 
-        Assert.assertEquals("1abc", StringUtils.capitalizeFirstLetter("1ABC")); // начинается с цифры
-        Assert.assertEquals("!@#", StringUtils.capitalizeFirstLetter("!@#"));   // только символы
-        Assert.assertEquals("😊smile", StringUtils.capitalizeFirstLetter("😊SMILE")); // emoji
-        Assert.assertEquals("Привет", StringUtils.capitalizeFirstLetter("пРИВЕТ"));  // кириллица
-        Assert.assertEquals("Éclair", StringUtils.capitalizeFirstLetter("éCLAIR"));  // accented
-        Assert.assertEquals("Äbc", StringUtils.capitalizeFirstLetter("äBC"));        // umlaut
-        Assert.assertEquals("中文", StringUtils.capitalizeFirstLetter("中文"));         // иероглифы не меняются
+        Assertions.assertEquals("1abc", StringUtils.capitalizeFirstLetter("1ABC")); // начинается с цифры
+        Assertions.assertEquals("!@#", StringUtils.capitalizeFirstLetter("!@#"));   // только символы
+        Assertions.assertEquals("😊smile", StringUtils.capitalizeFirstLetter("😊SMILE")); // emoji
+        Assertions.assertEquals("Привет", StringUtils.capitalizeFirstLetter("пРИВЕТ"));  // кириллица
+        Assertions.assertEquals("Éclair", StringUtils.capitalizeFirstLetter("éCLAIR"));  // accented
+        Assertions.assertEquals("Äbc", StringUtils.capitalizeFirstLetter("äBC"));        // umlaut
+        Assertions.assertEquals("中文", StringUtils.capitalizeFirstLetter("中文"));         // иероглифы не меняются
     }
 }
