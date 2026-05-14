@@ -29,8 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class CommonDao<T extends DbEntity> {
+
+    private static final long LONG_QUERY_THRESHOLD_MS = 500;
 
     private final static Logger logger = LogManager.getLogger(CommonDao.class);
 
@@ -64,6 +67,34 @@ public class CommonDao<T extends DbEntity> {
     public final String getCollectionName() {
         MongoCollection ann = type.getAnnotation(MongoCollection.class);
         return ann != null ? ann.name() : type.getSimpleName();
+    }
+
+    private <R> R executeMeasuredQuery(String operationName, String details, Supplier<R> supplier) {
+        long startNanos = System.nanoTime();
+        try {
+            R result = supplier.get();
+            long durationMs = (System.nanoTime() - startNanos) / 1_000_000L;
+            if (durationMs > LONG_QUERY_THRESHOLD_MS) {
+                logger.warn("LONG QUERY: {}. entity={}, durationMs={}, details={}",
+                        operationName, dbEntityName, durationMs, details);
+            } else {
+                logger.debug("QUERY: {}. entity={}, durationMs={}, details={}",
+                        operationName, dbEntityName, durationMs, details);
+            }
+            return result;
+        } catch (RuntimeException e) {
+            long durationMs = (System.nanoTime() - startNanos) / 1_000_000L;
+            logger.error("QUERY FAILED: {}. entity={}, durationMs={}, details={}",
+                    operationName, dbEntityName, durationMs, details, e);
+            throw e;
+        }
+    }
+
+    private void executeMeasuredVoidQuery(String operationName, String details, Runnable runnable) {
+        executeMeasuredQuery(operationName, details, () -> {
+            runnable.run();
+            return null;
+        });
     }
 
     public final String insert(T entity) {
@@ -175,11 +206,13 @@ public class CommonDao<T extends DbEntity> {
         if (id == null) {
             return Optional.empty();
         }
-        Optional<T> entity = Optional.ofNullable(mongoCollection.findOneById(id));
-        if (entity.isEmpty()) {
-            logger.info("Entity of type " + dbEntityName + " not found for id: " + id);
-        }
-        return entity;
+        return executeMeasuredQuery("findById", "id=" + id, () -> {
+            Optional<T> entity = Optional.ofNullable(mongoCollection.findOneById(id));
+            if (entity.isEmpty()) {
+                logger.info("Entity of type " + dbEntityName + " not found for id: " + id);
+            }
+            return entity;
+        });
     }
 
     public T findByIdOrThrow(String id) {
@@ -191,26 +224,33 @@ public class CommonDao<T extends DbEntity> {
     public final List<T> findByIds(List<String> ids) {
         logger.info("Find " + dbEntityName + " by ids: " + ids);
         Bson filter = Filters.in("_id", ids);
-        return mongoCollection.find(filter).into(new ArrayList<>());
+        return executeMeasuredQuery("findByIds", "ids=" + ids, () -> {
+            List<T> out = mongoCollection.find(filter).into(new ArrayList<>());
+            return out;
+        });
     }
 
     public void forEachEntity(Consumer<T> consumer) {
-        try (MongoCursor<T> cursor = mongoCollection.find().iterator()) {
-            while (cursor.hasNext()) {
-                T entity = cursor.next();
-                consumer.accept(entity);
+        executeMeasuredVoidQuery("forEachEntity", "consumer", () -> {
+            try (MongoCursor<T> cursor = mongoCollection.find().iterator()) {
+                while (cursor.hasNext()) {
+                    T entity = cursor.next();
+                    consumer.accept(entity);
+                }
             }
-        }
+        });
     }
 
     public List<T> findAll() {
-        List<T> result = new ArrayList<>();
-        try (MongoCursor<T> cursor = mongoCollection.find().iterator()) {
-            while (cursor.hasNext()) {
-                result.add(cursor.next());
+        return executeMeasuredQuery("findAll", "", () -> {
+            List<T> result = new ArrayList<>();
+            try (MongoCursor<T> cursor = mongoCollection.find().iterator()) {
+                while (cursor.hasNext()) {
+                    result.add(cursor.next());
+                }
             }
-        }
-        return result;
+            return result;
+        });
     }
 
     /**
@@ -259,24 +299,26 @@ public class CommonDao<T extends DbEntity> {
             sort = Sorts.orderBy(sortList);
         }
 
-        // 4. Build query
-        var query = mongoCollection.find(filter)
-                .limit(limit)
-                .skip(skip);
+        String details = String.format("limit=%d, skip=%d, filters=%s, sortFields=%s", limit, skip, filters, sortFields);
+        final Bson filterForQuery = filter;
+        final Bson sortForQuery = sort;
+        return executeMeasuredQuery("findWithFiltersAndSort", details, () -> {
+            // 4. Build query
+            var baseQuery = mongoCollection.find(filterForQuery)
+                    .limit(limit)
+                    .skip(skip);
+            var fetchQuery = sortForQuery != null ? baseQuery.sort(sortForQuery) : baseQuery;
 
-        if (sort != null) {
-            query = query.sort(sort);
-        }
-
-        // 5. Fetch results
-        List<T> result = new ArrayList<>();
-        try (MongoCursor<T> cursor = query.iterator()) {
-            while (cursor.hasNext()) {
-                result.add(cursor.next());
+            // 5. Fetch results
+            List<T> result = new ArrayList<>();
+            try (MongoCursor<T> cursor = fetchQuery.iterator()) {
+                while (cursor.hasNext()) {
+                    result.add(cursor.next());
+                }
             }
-        }
 
-        return result;
+            return result;
+        });
     }
 
     public final Optional<T> findSingleBySpecification(LimitSpecification specification) {
@@ -298,31 +340,36 @@ public class CommonDao<T extends DbEntity> {
         Bson filter = specification.filter();
         Optional<Collation> collationO = specification.collation();
 
-        var findQuery = mongoCollection.find(filter)
-                .sort(specification.sort())
-                .limit(specification.getLimit())
-                .skip(specification.getSkip());
+        String details = "specification=" + specification;
+        return executeMeasuredQuery("findBySpecification", details, () -> {
+            var findQuery = mongoCollection.find(filter)
+                    .sort(specification.sort())
+                    .limit(specification.getLimit())
+                    .skip(specification.getSkip());
 
-        if (collationO.isPresent()) {
-            findQuery = findQuery.collation(collationO.get());
-        }
-
-        List<T> result = new ArrayList<>();
-        try (MongoCursor<T> cursor = findQuery.iterator()) {
-            while (cursor.hasNext()) {
-                result.add(cursor.next());
+            if (collationO.isPresent()) {
+                findQuery = findQuery.collation(collationO.get());
             }
-        }
 
-        return result;
+            List<T> result = new ArrayList<>();
+            try (MongoCursor<T> cursor = findQuery.iterator()) {
+                while (cursor.hasNext()) {
+                    result.add(cursor.next());
+                }
+            }
+
+            return result;
+        });
     }
 
     public final DeleteResult deleteBySpecification(LimitSpecification specification) {
         Bson filter = specification.filter();
-        DeleteResult deleteResult = mongoCollection.deleteMany(filter);
-        logger.info("Deleted in " + dbEntityName + " "
-                + deleteResult.getDeletedCount() + " documents by specification: " + specification);
-        return deleteResult;
+        return executeMeasuredQuery("deleteBySpecification", "specification=" + specification, () -> {
+            DeleteResult deleteResult = mongoCollection.deleteMany(filter);
+            logger.info("Deleted in " + dbEntityName + " "
+                    + deleteResult.getDeletedCount() + " documents by specification: " + specification);
+            return deleteResult;
+        });
     }
 
     public final boolean existsById(String id) {
@@ -330,27 +377,35 @@ public class CommonDao<T extends DbEntity> {
     }
 
     public final long countBySpecification(LimitSpecification specification) {
-        return mongoCollection.countDocuments(specification.filter());
+        Bson filter = specification.filter();
+        return executeMeasuredQuery("countBySpecification", "specification=" + specification, () ->
+                mongoCollection.countDocuments(filter));
     }
 
     public boolean deleteById(String id) {
-        DeleteResult deleteResult = mongoCollection.removeById(id);
-        if (deleteResult.getDeletedCount() == 1) {
-            logger.info("{} deleted successfully: {}", dbEntityName, id);
-            return true;
-        } else {
-            logger.warn("{} not deleted (possibly not found): {}", dbEntityName, id);
-            return false;
-        }
+        return executeMeasuredQuery("deleteById", "id=" + id, () -> {
+            DeleteResult deleteResult = mongoCollection.removeById(id);
+            boolean deleted = deleteResult.getDeletedCount() == 1;
+
+            if (deleted) {
+                logger.info("{} deleted successfully: {}", dbEntityName, id);
+            } else {
+                logger.warn("{} not deleted (possibly not found): {}", dbEntityName, id);
+            }
+
+            return deleted;
+        });
     }
 
     public void deleteAll() {
-        DeleteResult deleteResult = mongoCollection.deleteMany(Filters.empty());
-        logger.info(dbEntityName + " deleted successfully: " + deleteResult.getDeletedCount() + " documents");
+        executeMeasuredVoidQuery("deleteAll", "filter=empty", () -> {
+            DeleteResult deleteResult = mongoCollection.deleteMany(Filters.empty());
+            logger.info("{} deleted successfully: {} documents", dbEntityName, deleteResult.getDeletedCount());
+        });
     }
 
     public final long count() {
-        return mongoCollection.countDocuments();
+        return executeMeasuredQuery("count", "", mongoCollection::countDocuments);
     }
 
     /**
@@ -369,9 +424,6 @@ public class CommonDao<T extends DbEntity> {
     public List<T> findWithBsonFilterAndSort(int limit, int skip,
                                              Bson filter,
                                              Map<String, Boolean> sortFields) {
-        logger.info("Find {} with limit={}, skip={}, filter={}, sortFields={}",
-                dbEntityName, limit, skip, filter, sortFields);
-
         // 1. Validate limit
         if (limit <= 0) {
             throw new IllegalArgumentException("Limit must be > 0");
@@ -392,24 +444,25 @@ public class CommonDao<T extends DbEntity> {
             sort = Sorts.orderBy(sortList);
         }
 
-        // 4. Build query
-        var query = mongoCollection.find(finalFilter)
-                .limit(limit)
-                .skip(skip);
+        String details = String.format("limit=%d, skip=%d, filter=%s, sortFields=%s", limit, skip, finalFilter, sortFields);
+        final Bson sortForQuery = sort;
+        return executeMeasuredQuery("findWithBsonFilterAndSort", details, () -> {
+            // 4. Build query
+            var baseQuery = mongoCollection.find(finalFilter)
+                    .limit(limit)
+                    .skip(skip);
+            var fetchQuery = sortForQuery != null ? baseQuery.sort(sortForQuery) : baseQuery;
 
-        if (sort != null) {
-            query = query.sort(sort);
-        }
-
-        // 5. Fetch results
-        List<T> result = new ArrayList<>();
-        try (MongoCursor<T> cursor = query.iterator()) {
-            while (cursor.hasNext()) {
-                result.add(cursor.next());
+            // 5. Fetch results
+            List<T> result = new ArrayList<>();
+            try (MongoCursor<T> cursor = fetchQuery.iterator()) {
+                while (cursor.hasNext()) {
+                    result.add(cursor.next());
+                }
             }
-        }
 
-        return result;
+            return result;
+        });
     }
 
     /**
@@ -420,7 +473,9 @@ public class CommonDao<T extends DbEntity> {
      */
     public long countWithBsonFilter(Bson filter) {
         Bson finalFilter = (filter != null) ? filter : Filters.empty();
-        return mongoCollection.countDocuments(finalFilter);
+        String details = "filter=" + finalFilter;
+        return executeMeasuredQuery("countWithBsonFilter", details, () ->
+                mongoCollection.countDocuments(finalFilter));
     }
 
     /**
@@ -433,9 +488,12 @@ public class CommonDao<T extends DbEntity> {
      */
     public <R> List<R> distinct(String fieldName, Bson filter, Class<R> resultClass) {
         Bson finalFilter = (filter != null) ? filter : Filters.empty();
-        List<R> result = new ArrayList<>();
-        mongoCollection.distinct(fieldName, finalFilter, resultClass).into(result);
-        return result;
+        String details = String.format("fieldName=%s, filter=%s, resultClass=%s", fieldName, finalFilter, resultClass);
+        return executeMeasuredQuery("distinct", details, () -> {
+            List<R> result = new ArrayList<>();
+            mongoCollection.distinct(fieldName, finalFilter, resultClass).into(result);
+            return result;
+        });
     }
 
     /**
@@ -446,8 +504,10 @@ public class CommonDao<T extends DbEntity> {
      * @return list of result documents
      */
     public List<org.bson.Document> runAggregation(List<Bson> pipeline) {
-        return database.getCollection(getCollectionName()).aggregate(pipeline)
-                .into(new ArrayList<>());
+        String details = "pipeline=" + pipeline;
+        return executeMeasuredQuery("runAggregation", details, () ->
+                database.getCollection(getCollectionName()).aggregate(pipeline)
+                        .into(new ArrayList<>()));
     }
 
 }
