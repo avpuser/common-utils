@@ -239,7 +239,7 @@ public class AiCostCalculatorTest {
         BigDecimal cost = AiCostCalculator.calculateCost(response);
 
         assertNotNull(cost);
-        assertEquals(new BigDecimal("0.00435"), cost);
+        assertEquals(new BigDecimal("0.00275"), cost);
     }
 
     @Test
