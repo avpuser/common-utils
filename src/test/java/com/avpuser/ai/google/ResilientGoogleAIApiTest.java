@@ -33,8 +33,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-@MockTest
 
+@MockTest
 class ResilientGoogleAIApiTest {
 
     private static final Instant T0 = Instant.parse("2026-04-20T12:00:00Z");

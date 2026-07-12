@@ -19,8 +19,22 @@ public enum AIModel {
     DEEPSEEK_CHAT("deepseek-chat", AIProvider.DEEPSEEK, new BigDecimal("0.27"), new BigDecimal("1.10")),
     DEEPSEEK_REASONER("deepseek-reasoner", AIProvider.DEEPSEEK, new BigDecimal("0.55"), new BigDecimal("2.19")),
 
-    GEMINI_PRO("gemini-2.5-pro", AIProvider.GOOGLE, new BigDecimal("1.25"), new BigDecimal("10.00")),
-    GEMINI_FLASH("gemini-2.5-flash", AIProvider.GOOGLE, new BigDecimal("0.30"), new BigDecimal("2.50")),
+    GEMINI_PRO(
+            "gemini-2.5-pro",
+            AIProvider.GOOGLE,
+            new BigDecimal("1.25"),
+            new BigDecimal("10.00")
+    ),
+
+    // Keep GEMINI_FLASH mapped to Google's recommended low-cost model.
+    // Currently: gemini-3.1-flash-lite.
+    GEMINI_FLASH(
+            "gemini-3.1-flash-lite",
+            AIProvider.GOOGLE,
+            new BigDecimal("0.25"),
+            new BigDecimal("1.50")
+    )
+
     ;
 
     private final String modelName;
