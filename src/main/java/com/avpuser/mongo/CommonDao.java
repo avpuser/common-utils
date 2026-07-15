@@ -269,8 +269,13 @@ public class CommonDao<T extends DbEntity> {
     public List<T> findWithFiltersAndSort(int limit, int skip,
                                           Map<String, Object> filters,
                                           Map<String, Boolean> sortFields) {
-        logger.info("Find {} with limit={}, skip={}, filters={}, sortFields={}",
-                dbEntityName, limit, skip, filters, sortFields);
+        if (!dbEntityName.equals("NotificationCampaign")) {
+            logger.info("Find {} with limit={}, skip={}, filters={}, sortFields={}",
+                    dbEntityName, limit, skip, filters, sortFields);
+        } else {
+            logger.debug("Find {} with limit={}, skip={}, filters={}, sortFields={}",
+                    dbEntityName, limit, skip, filters, sortFields);
+        }
 
         // 1. Validate limit
         if (limit <= 0) {
