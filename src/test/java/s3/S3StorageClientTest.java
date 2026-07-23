@@ -107,19 +107,27 @@ class S3StorageClientTest {
 
     @Test
     void testDeleteFile_withException() {
-        S3Exception error = mock(S3Exception.class);
-        AwsErrorDetails errorDetails = AwsErrorDetails.builder()
-                .errorCode("InternalError")
-                .errorMessage("Fail")
+        S3Exception error = (S3Exception) S3Exception.builder()
+                .message("Fail")
+                .statusCode(500)
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode("InternalError")
+                        .errorMessage("Fail")
+                        .build())
                 .build();
 
-        when(error.awsErrorDetails()).thenReturn(errorDetails);
+        when(mockS3Client.deleteObject(any(DeleteObjectRequest.class)))
+                .thenThrow(error);
 
-        when(mockS3Client.deleteObject(any(DeleteObjectRequest.class))).thenThrow(error);
+        S3Exception thrown = assertThrows(
+                S3Exception.class,
+                () -> s3StorageClient.deleteFile("delete/fail.txt")
+        );
 
-        // Метод deleteFile проглатывает исключение, поэтому не должно выбрасываться
-        assertDoesNotThrow(() -> s3StorageClient.deleteFile("delete/fail.txt"));
-        verify(mockS3Client, times(1)).deleteObject(any(DeleteObjectRequest.class));
+        assertSame(error, thrown);
+
+        verify(mockS3Client, times(1))
+                .deleteObject(any(DeleteObjectRequest.class));
     }
 
     @Test

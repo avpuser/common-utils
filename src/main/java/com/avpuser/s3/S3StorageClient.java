@@ -281,6 +281,7 @@ public class S3StorageClient {
             logger.info("File successfully deleted from S3");
         } catch (S3Exception e) {
             logger.error("Error deleting file", e);
+            throw e;
         }
     }
 
