@@ -1,5 +1,8 @@
 package com.avpuser.mongo.typeconverter;
 
+import com.avpuser.mongo.encryption.PiiEncryptionService;
+import com.avpuser.mongo.encryption.jackson.PiiEncryptionModule;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -11,8 +14,24 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public class MongoObjectMapperFactory {
+
+    /** Without field-level PII encryption. Use {@link #createObjectMapper(PiiEncryptionService)} for entities with {@code @Encrypted} fields. */
     public static ObjectMapper createObjectMapper() {
+        return createObjectMapper(null);
+    }
+
+    public static ObjectMapper createObjectMapper(PiiEncryptionService encryptionService) {
         ObjectMapper mapper = new ObjectMapper();
+
+        // Let RuntimeExceptions raised by custom (de)serializers - notably the PII decryption
+        // exceptions below - propagate to the caller unwrapped, instead of being repackaged into
+        // a generic JsonMappingException. Callers that need to distinguish "unknown key" from
+        // "corrupted payload" from "auth failure" need the real exception type.
+        mapper.disable(DeserializationFeature.WRAP_EXCEPTIONS);
+
+        if (encryptionService != null) {
+            mapper.registerModule(new PiiEncryptionModule(encryptionService));
+        }
 
         JavaTimeModule javaTimeModule = new JavaTimeModule();
 

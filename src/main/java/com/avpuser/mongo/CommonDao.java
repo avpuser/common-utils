@@ -1,5 +1,8 @@
 package com.avpuser.mongo;
 
+import com.avpuser.mongo.encryption.EncryptedFieldIntrospector;
+import com.avpuser.mongo.encryption.PiiEncryptionService;
+import com.avpuser.mongo.encryption.exception.PiiEncryptionConfigException;
 import com.avpuser.mongo.exception.DuplicateKeyException;
 import com.avpuser.mongo.exception.EntityNotFoundException;
 import com.avpuser.mongo.exception.VersionConflictException;
@@ -44,13 +47,40 @@ public class CommonDao<T extends DbEntity> {
     private final Clock clock;
     private final String dbEntityName;
 
+    /**
+     * @throws PiiEncryptionConfigException if {@code type} declares any {@code @Encrypted} field -
+     *                                       such entities must be constructed via
+     *                                       {@link #CommonDao(MongoDatabase, Class, Clock, PiiEncryptionService)}
+     *                                       instead. There is no safe default key to fall back to
+     *                                       here: silently encrypting with a made-up key would
+     *                                       write data that becomes permanently undecryptable the
+     *                                       moment this key is gone (e.g. next JVM restart).
+     */
     public CommonDao(MongoDatabase database, Class<T> type, Clock clock) {
+        this(database, type, clock, requireNoEncryptedFields(type));
+    }
+
+    private static <T> PiiEncryptionService requireNoEncryptedFields(Class<T> type) {
+        if (!EncryptedFieldIntrospector.scanEncryptedFields(type).isEmpty()) {
+            throw new PiiEncryptionConfigException(
+                    "Entity " + type.getName() + " declares @Encrypted field(s) but no PiiEncryptionService "
+                            + "was provided. Use CommonDao(MongoDatabase, Class, Clock, PiiEncryptionService).");
+        }
+        return null;
+    }
+
+    /**
+     * @param encryptionService backs any {@code @Encrypted} field on {@code type}; entities without
+     *                          one are entirely unaffected regardless of which service is passed.
+     *                          May be {@code null} only if {@code type} has no {@code @Encrypted} field.
+     */
+    public CommonDao(MongoDatabase database, Class<T> type, Clock clock, PiiEncryptionService encryptionService) {
         this.database = database;
         this.type = type;
         this.clock = clock;
         this.dbEntityName = type.getSimpleName();
 
-        ObjectMapper objectMapper = MongoObjectMapperFactory.createObjectMapper();
+        ObjectMapper objectMapper = MongoObjectMapperFactory.createObjectMapper(encryptionService);
         this.mongoCollection = JacksonMongoCollection.builder()
                 .withObjectMapper(objectMapper)
                 .build(database, type, UuidRepresentation.STANDARD);
