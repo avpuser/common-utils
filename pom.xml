@@ -101,10 +101,6 @@
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3-transfer-manager</artifactId>
         </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>netty-nio-client</artifactId>
-        </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.mongojack/mongojack -->
         <dependency>
