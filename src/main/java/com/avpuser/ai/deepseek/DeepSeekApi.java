@@ -4,6 +4,8 @@ import com.avpuser.ai.AIApi;
 import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.ChatCompletionApiClient;
+import com.avpuser.ai.metrics.AiMetrics;
+import com.avpuser.ai.metrics.NoOpAiMetrics;
 
 /**
  * Implementation of {@link AIApi} for interacting with the DeepSeek AI chat completion endpoint.
@@ -25,7 +27,12 @@ public class DeepSeekApi implements AIApi {
     private final ChatCompletionApiClient chatCompletionApiClient;
 
     public DeepSeekApi(String apiKey) {
-        this.chatCompletionApiClient = new ChatCompletionApiClient(apiKey, API_URL, AI_PROVIDER);
+        this(apiKey, NoOpAiMetrics.INSTANCE);
+    }
+
+    public DeepSeekApi(String apiKey, AiMetrics aiMetrics) {
+        this.chatCompletionApiClient = new ChatCompletionApiClient(
+                apiKey, API_URL, AI_PROVIDER, aiMetrics == null ? NoOpAiMetrics.INSTANCE : aiMetrics);
     }
 
     @Override

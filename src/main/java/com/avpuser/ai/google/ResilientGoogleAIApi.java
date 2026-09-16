@@ -4,6 +4,9 @@ import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiApiException;
 import com.avpuser.ai.AiErrorType;
+import com.avpuser.ai.metrics.AiMetrics;
+import com.avpuser.ai.metrics.AiMetricsTags;
+import com.avpuser.ai.metrics.NoOpAiMetrics;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -25,22 +28,33 @@ public class ResilientGoogleAIApi extends GoogleAIApi {
 
     private final List<GoogleAIApi> delegates;
     private final Clock clock;
+    private final AiMetrics aiMetrics;
     private final ConcurrentHashMap<GoogleAIApi, Instant> cooldownUntil = new ConcurrentHashMap<>();
     private final AtomicInteger nextRoundRobinIndex = new AtomicInteger(0);
 
     public ResilientGoogleAIApi(List<String> apiKeys) {
+        this(apiKeys, NoOpAiMetrics.INSTANCE);
+    }
+
+    public ResilientGoogleAIApi(List<String> apiKeys, AiMetrics aiMetrics) {
         super(firstKey(requireNonEmptyKeys(apiKeys)));
         this.delegates = apiKeys.stream().map(GoogleAIApi::new).toList();
         this.clock = Clock.systemUTC();
+        this.aiMetrics = aiMetrics == null ? NoOpAiMetrics.INSTANCE : aiMetrics;
     }
 
     ResilientGoogleAIApi(List<GoogleAIApi> delegates, Clock clock) {
+        this(delegates, clock, NoOpAiMetrics.INSTANCE);
+    }
+
+    ResilientGoogleAIApi(List<GoogleAIApi> delegates, Clock clock, AiMetrics aiMetrics) {
         super("unused-resilient-google-ai-api-parent-key");
         if (delegates == null || delegates.isEmpty()) {
             throw new IllegalArgumentException("delegates must not be null or empty");
         }
         this.delegates = List.copyOf(delegates);
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.aiMetrics = aiMetrics == null ? NoOpAiMetrics.INSTANCE : aiMetrics;
     }
 
     private static List<String> requireNonEmptyKeys(List<String> apiKeys) {
@@ -56,12 +70,12 @@ public class ResilientGoogleAIApi extends GoogleAIApi {
 
     @Override
     public String execCompletions(String userPrompt, String systemPrompt, AIModel model) {
-        return executeWithRotation(api -> api.execCompletions(userPrompt, systemPrompt, model));
+        return executeWithRotation(model, api -> api.execCompletions(userPrompt, systemPrompt, model));
     }
 
     @Override
     public String extractTextFromFile(byte[] fileBytes, String mimeType, String prompt) {
-        return executeWithRotation(api -> api.extractTextFromFile(fileBytes, mimeType, prompt));
+        return executeWithRotation(AIModel.GEMINI_FLASH, api -> api.extractTextFromFile(fileBytes, mimeType, prompt));
     }
 
     @Override
@@ -74,7 +88,7 @@ public class ResilientGoogleAIApi extends GoogleAIApi {
         String call(GoogleAIApi api);
     }
 
-    private String executeWithRotation(ApiCall apiCall) {
+    private String executeWithRotation(AIModel model, ApiCall apiCall) {
         Instant now = clock.instant();
         List<Integer> indices = availableIndicesInRotationOrder(now);
         if (indices.isEmpty()) {
@@ -85,10 +99,12 @@ public class ResilientGoogleAIApi extends GoogleAIApi {
             GoogleAIApi api = delegates.get(idx);
             try {
                 String result = apiCall.call(api);
+                recordAttempt(model, idx, AiMetricsTags.RESULT_SUCCESS, AiMetricsTags.ERROR_TYPE_NONE);
                 advanceRotationAfterSuccess(idx);
                 logger.info("Request succeeded on delegate {} of {}", idx, delegates.size());
                 return result;
             } catch (AiApiException e) {
+                recordAttempt(model, idx, AiMetricsTags.RESULT_ERROR, AiMetricsTags.errorType(e.getErrorType()));
                 if (e.getErrorType() == AiErrorType.RATE_LIMIT) {
                     putOnCooldown(api, RATE_LIMIT_COOLDOWN, AiErrorType.RATE_LIMIT);
                 } else if (e.getErrorType() == AiErrorType.QUOTA_EXCEEDED) {
@@ -96,10 +112,22 @@ public class ResilientGoogleAIApi extends GoogleAIApi {
                 } else {
                     throw e;
                 }
+            } catch (RuntimeException e) {
+                recordAttempt(model, idx, AiMetricsTags.RESULT_ERROR, AiMetricsTags.errorType(e));
+                throw e;
             }
         }
         logAllDelegatesUnavailable(clock.instant());
         throw allKeysUnavailableException();
+    }
+
+    private void recordAttempt(AIModel model, int accountIndex, String result, String errorType) {
+        aiMetrics.recordAttempt(
+                AiMetricsTags.provider(AIProvider.GOOGLE),
+                AiMetricsTags.model(model),
+                AiMetricsTags.account(accountIndex),
+                result,
+                errorType);
     }
 
     private AiApiException allKeysUnavailableException() {

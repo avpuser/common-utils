@@ -1,5 +1,8 @@
 package com.avpuser.ai;
 
+import com.avpuser.ai.metrics.AiMetrics;
+import com.avpuser.ai.metrics.AiMetricsTags;
+import com.avpuser.ai.metrics.NoOpAiMetrics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,11 +39,17 @@ public class ChatCompletionApiClient implements AIApi {
     private final String apiKey;
     private final String apiUrl;
     private final AIProvider aiProvider;
+    private final AiMetrics aiMetrics;
 
     public ChatCompletionApiClient(String apiKey, String apiUrl, AIProvider aiProvider) {
+        this(apiKey, apiUrl, aiProvider, NoOpAiMetrics.INSTANCE);
+    }
+
+    public ChatCompletionApiClient(String apiKey, String apiUrl, AIProvider aiProvider, AiMetrics aiMetrics) {
         this.apiKey = apiKey;
         this.apiUrl = apiUrl;
         this.aiProvider = aiProvider;
+        this.aiMetrics = aiMetrics == null ? NoOpAiMetrics.INSTANCE : aiMetrics;
     }
 
     @Override
@@ -72,10 +81,30 @@ public class ChatCompletionApiClient implements AIApi {
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException | InterruptedException e) {
+            recordAttempt(model, AiMetricsTags.RESULT_ERROR, AiMetricsTags.errorType(e));
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new RuntimeException("HTTP request failed", e);
         }
 
-        return AiApiUtils.handleResponse(response, aiProvider());
+        try {
+            String body = AiApiUtils.handleResponse(response, aiProvider());
+            recordAttempt(model, AiMetricsTags.RESULT_SUCCESS, AiMetricsTags.ERROR_TYPE_NONE);
+            return body;
+        } catch (AiApiException e) {
+            recordAttempt(model, AiMetricsTags.RESULT_ERROR, AiMetricsTags.errorType(e.getErrorType()));
+            throw e;
+        }
+    }
+
+    private void recordAttempt(AIModel model, String result, String errorType) {
+        aiMetrics.recordAttempt(
+                AiMetricsTags.provider(aiProvider),
+                AiMetricsTags.model(model),
+                AiMetricsTags.ACCOUNT_NONE,
+                result,
+                errorType);
     }
 
     @Override

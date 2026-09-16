@@ -5,6 +5,8 @@ import com.avpuser.ai.AIModel;
 import com.avpuser.ai.AIProvider;
 import com.avpuser.ai.AiApiUtils;
 import com.avpuser.ai.ChatCompletionApiClient;
+import com.avpuser.ai.metrics.AiMetrics;
+import com.avpuser.ai.metrics.NoOpAiMetrics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -47,8 +49,13 @@ public class OpenAIApi implements AIApi {
     private final String apiKey;
 
     public OpenAIApi(String apiKey) {
+        this(apiKey, NoOpAiMetrics.INSTANCE);
+    }
+
+    public OpenAIApi(String apiKey, AiMetrics aiMetrics) {
         this.apiKey = apiKey;
-        this.chatCompletionApiClient = new ChatCompletionApiClient(apiKey, API_URL, AI_PROVIDER);
+        this.chatCompletionApiClient = new ChatCompletionApiClient(
+                apiKey, API_URL, AI_PROVIDER, aiMetrics == null ? NoOpAiMetrics.INSTANCE : aiMetrics);
     }
 
     @Override
