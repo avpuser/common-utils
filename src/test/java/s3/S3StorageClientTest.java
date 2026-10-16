@@ -1,6 +1,8 @@
 package s3;
 
 import com.avpuser.test.MockTest;
+import com.avpuser.s3.S3ObjectListResult;
+import com.avpuser.s3.S3ObjectMetadata;
 import com.avpuser.s3.S3StorageClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,12 +12,18 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import org.mockito.ArgumentCaptor;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 @MockTest
 
@@ -166,5 +174,85 @@ class S3StorageClientTest {
         assertEquals("unknown", S3StorageClient.extractFileNameFromS3Key(""));
         assertEquals("unknown", S3StorageClient.extractFileNameFromS3Key(null));
         assertEquals("unknown", S3StorageClient.extractFileNameFromS3Key("folder/"));
+    }
+
+    @Test
+    void listObjects_mapsSummariesAndContinuationToken() {
+        Instant modified = Instant.parse("2026-01-02T03:04:05Z");
+        S3Object obj = S3Object.builder()
+                .key("assets/a.png")
+                .size(12L)
+                .lastModified(modified)
+                .eTag("\"etag1\"")
+                .build();
+        when(mockS3Client.listObjectsV2(any(ListObjectsV2Request.class)))
+                .thenReturn(ListObjectsV2Response.builder()
+                        .contents(obj)
+                        .isTruncated(true)
+                        .nextContinuationToken("token-2")
+                        .build());
+
+        S3ObjectListResult result = s3StorageClient.listObjects(50, null);
+
+        assertEquals(1, result.objects().size());
+        assertEquals("assets/a.png", result.objects().get(0).key());
+        assertEquals(12L, result.objects().get(0).size());
+        assertEquals(modified, result.objects().get(0).lastModified());
+        assertEquals("\"etag1\"", result.objects().get(0).eTag());
+        assertTrue(result.truncated());
+        assertEquals("token-2", result.nextContinuationToken());
+
+        ArgumentCaptor<ListObjectsV2Request> captor = ArgumentCaptor.forClass(ListObjectsV2Request.class);
+        verify(mockS3Client).listObjectsV2(captor.capture());
+        assertEquals("my-bucket", captor.getValue().bucket());
+        assertEquals(50, captor.getValue().maxKeys());
+    }
+
+    @Test
+    void listObjects_passesContinuationToken() {
+        when(mockS3Client.listObjectsV2(any(ListObjectsV2Request.class)))
+                .thenReturn(ListObjectsV2Response.builder().contents(List.of()).isTruncated(false).build());
+
+        s3StorageClient.listObjects(10, "cont-1");
+
+        ArgumentCaptor<ListObjectsV2Request> captor = ArgumentCaptor.forClass(ListObjectsV2Request.class);
+        verify(mockS3Client).listObjectsV2(captor.capture());
+        assertEquals("cont-1", captor.getValue().continuationToken());
+        assertEquals(10, captor.getValue().maxKeys());
+    }
+
+    @Test
+    void headObject_returnsMetadata() {
+        Instant modified = Instant.parse("2026-03-04T05:06:07Z");
+        when(mockS3Client.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(HeadObjectResponse.builder()
+                        .contentType("image/png")
+                        .contentLength(99L)
+                        .lastModified(modified)
+                        .eTag("\"abc\"")
+                        .metadata(Map.of("original", "logo.png"))
+                        .build());
+
+        S3ObjectMetadata metadata = s3StorageClient.headObject("assets/x.png");
+
+        assertEquals("assets/x.png", metadata.key());
+        assertEquals("image/png", metadata.contentType());
+        assertEquals(99L, metadata.contentLength());
+        assertEquals(modified, metadata.lastModified());
+        assertEquals("\"abc\"", metadata.eTag());
+        assertEquals("logo.png", metadata.metadata().get("original"));
+    }
+
+    @Test
+    void headObject_notFound_rethrows() {
+        S3Exception notFound = (S3Exception) S3Exception.builder()
+                .statusCode(404)
+                .awsErrorDetails(AwsErrorDetails.builder().errorCode("NotFound").build())
+                .message("Not found")
+                .build();
+        when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenThrow(notFound);
+
+        S3Exception thrown = assertThrows(S3Exception.class, () -> s3StorageClient.headObject("missing"));
+        assertSame(notFound, thrown);
     }
 }

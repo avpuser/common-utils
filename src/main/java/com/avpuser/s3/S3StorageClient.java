@@ -12,9 +12,13 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
@@ -29,7 +33,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class S3StorageClient {
 
@@ -247,6 +255,77 @@ public class S3StorageClient {
         return "https://" + bucketName + "." + domain + "/" + remoteFilePath;
     }
 
+    /**
+     * Lists objects via ListObjectsV2. Does not call HeadObject per item.
+     */
+    public S3ObjectListResult listObjects(Integer maxKeys, String continuationToken) {
+        try {
+            ListObjectsV2Request.Builder builder = ListObjectsV2Request.builder()
+                    .bucket(bucketName);
+            if (maxKeys != null && maxKeys > 0) {
+                builder = builder.maxKeys(maxKeys);
+            }
+            if (continuationToken != null && !continuationToken.isBlank()) {
+                builder = builder.continuationToken(continuationToken);
+            }
+
+            ListObjectsV2Response response = s3Client.listObjectsV2(builder.build());
+            List<S3ObjectSummary> objects = new ArrayList<>();
+            for (S3Object object : response.contents()) {
+                if (object == null || object.key() == null || object.key().isBlank()) {
+                    continue;
+                }
+                // Skip folder placeholders
+                if (object.key().endsWith("/") && (object.size() == null || object.size() == 0L)) {
+                    continue;
+                }
+                objects.add(new S3ObjectSummary(
+                        object.key(),
+                        object.size(),
+                        object.lastModified(),
+                        object.eTag()));
+            }
+
+            boolean truncated = Boolean.TRUE.equals(response.isTruncated());
+            String nextToken = truncated ? response.nextContinuationToken() : null;
+            return new S3ObjectListResult(Collections.unmodifiableList(objects), truncated, nextToken);
+        } catch (S3Exception e) {
+            logger.error("Error listing objects on S3", e);
+            throw e;
+        }
+    }
+
+    /**
+     * Returns object metadata via HeadObject for a single key.
+     */
+    public S3ObjectMetadata headObject(String remoteRelativePath) {
+        try {
+            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(remoteRelativePath)
+                    .build();
+
+            HeadObjectResponse response = s3Client.headObject(headObjectRequest);
+            Map<String, String> metadata = response.metadata() == null
+                    ? Map.of()
+                    : Collections.unmodifiableMap(response.metadata());
+            return new S3ObjectMetadata(
+                    remoteRelativePath,
+                    response.contentType(),
+                    response.contentLength(),
+                    response.lastModified(),
+                    response.eTag(),
+                    metadata);
+        } catch (S3Exception e) {
+            if (isNotFound(e)) {
+                logger.info("Object not found on S3 for headObject");
+                throw e;
+            }
+            logger.error("Error reading object metadata on S3", e);
+            throw e;
+        }
+    }
+
     public boolean fileExists(String remoteRelativePath) {
         try {
             HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
@@ -258,13 +337,21 @@ public class S3StorageClient {
             logger.info("File exists on S3");
             return true;
         } catch (S3Exception e) {
-            if ("NoSuchKey".equals(e.awsErrorDetails().errorCode())) {
+            if (isNotFound(e)) {
                 logger.info("File does not exist on S3");
                 return false;
             }
             logger.error("Error checking file existence on S3", e);
             throw e;
         }
+    }
+
+    private static boolean isNotFound(S3Exception e) {
+        if (e == null || e.awsErrorDetails() == null) {
+            return e != null && e.statusCode() == 404;
+        }
+        String code = e.awsErrorDetails().errorCode();
+        return "NoSuchKey".equals(code) || "NotFound".equals(code) || e.statusCode() == 404;
     }
 
     public void deleteFile(String remoteRelativePath) {
