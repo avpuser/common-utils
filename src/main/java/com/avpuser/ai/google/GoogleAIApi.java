@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,13 @@ public class GoogleAIApi implements AIApi {
 
     private static final AIProvider AI_PROVIDER = AIProvider.GOOGLE;
 
-    private final HttpClient client = HttpClient.newHttpClient();
+    public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
+    public static final Duration OCR_REQUEST_TIMEOUT = Duration.ofSeconds(120);
+
+    private final HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(CONNECT_TIMEOUT)
+            .build();
 
     private final String apiKey;
 
@@ -56,6 +63,7 @@ public class GoogleAIApi implements AIApi {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .timeout(REQUEST_TIMEOUT)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json))
                 .build();
@@ -89,6 +97,7 @@ public class GoogleAIApi implements AIApi {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .timeout(OCR_REQUEST_TIMEOUT)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonRequest))
                 .build();

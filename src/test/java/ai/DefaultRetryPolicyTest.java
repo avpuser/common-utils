@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.http.HttpTimeoutException;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -179,6 +180,14 @@ class DefaultRetryPolicyTest {
     void isRetryable_ShouldReturnTrue_ForIOExceptionAndTimeout() {
         assertTrue(policy.isRetryable(new IOException("io")));
         assertTrue(policy.isRetryable(new TimeoutException("timeout")));
+    }
+
+    @Test
+    void isRetryable_ShouldReturnTrue_ForHttpTimeoutExceptionWrappedLikeAiClients() {
+        HttpTimeoutException timeout = new HttpTimeoutException("request timed out");
+        RuntimeException wrapped = new RuntimeException("HTTP request failed", timeout);
+        assertTrue(policy.isRetryable(wrapped));
+        assertTrue(policy.isRetryable(timeout));
     }
 
     @Test

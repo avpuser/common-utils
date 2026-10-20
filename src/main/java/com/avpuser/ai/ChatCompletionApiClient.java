@@ -12,6 +12,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,11 @@ public class ChatCompletionApiClient implements AIApi {
 
     private static final Logger logger = LogManager.getLogger(ChatCompletionApiClient.class);
     private static final ObjectMapper mapper = new ObjectMapper();
-    private final HttpClient client = HttpClient.newHttpClient();
+    public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
+    private final HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(CONNECT_TIMEOUT)
+            .build();
     private final String apiKey;
     private final String apiUrl;
     private final AIProvider aiProvider;
@@ -72,6 +77,7 @@ public class ChatCompletionApiClient implements AIApi {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(apiUrl))
+                .timeout(REQUEST_TIMEOUT)
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + apiKey)
                 .POST(HttpRequest.BodyPublishers.ofString(jsonRequestBody))

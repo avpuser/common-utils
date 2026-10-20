@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.http.HttpTimeoutException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -360,5 +361,29 @@ class RetryAiExecutorTest {
         verify(delegate).execute(stepReq1);
         verify(delegate, never()).execute(stepReq2);
         verify(policy).isRetryable(wrapped);
+    }
+
+    @Test
+    void httpTimeoutException_WithRealRetryPolicy_FallsBackAndSucceeds() {
+        DefaultRetryPolicy realPolicy = new DefaultRetryPolicy();
+        RetryAiExecutor executor = new RetryAiExecutor(delegate, realPolicy);
+
+        AiPromptRequest request = AiPromptRequest.withFallback(
+                "u", "s", AIModel.GPT_4O, "pt", java.util.Set.of(AIModel.GPT_4O_MINI));
+
+        RuntimeException timeoutWrapped = new RuntimeException(
+                "HTTP request failed",
+                new HttpTimeoutException("request timed out"));
+        when(delegate.execute(argThat(r -> r != null && r.getModel() == AIModel.GPT_4O)))
+                .thenThrow(timeoutWrapped);
+        AiResponse ok = new AiResponse("ok-fallback", AIModel.GPT_4O_MINI);
+        when(delegate.execute(argThat(r -> r != null && r.getModel() == AIModel.GPT_4O_MINI)))
+                .thenReturn(ok);
+
+        AiResponse result = executor.execute(request);
+
+        assertSame(ok, result);
+        verify(delegate).execute(argThat(r -> r != null && r.getModel() == AIModel.GPT_4O));
+        verify(delegate).execute(argThat(r -> r != null && r.getModel() == AIModel.GPT_4O_MINI));
     }
 }

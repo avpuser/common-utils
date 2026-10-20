@@ -17,6 +17,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +43,14 @@ public class OpenAIApi implements AIApi {
 
     private static final AIProvider AI_PROVIDER = AIProvider.OPENAI;
 
+    public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    public static final Duration OCR_REQUEST_TIMEOUT = Duration.ofSeconds(120);
+
     private final ChatCompletionApiClient chatCompletionApiClient;
 
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(CONNECT_TIMEOUT)
+            .build();
 
     private final String apiKey;
 
@@ -82,6 +88,7 @@ public class OpenAIApi implements AIApi {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(API_URL))
+                .timeout(OCR_REQUEST_TIMEOUT)
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + apiKey)
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
