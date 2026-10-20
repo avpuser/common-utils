@@ -13,6 +13,8 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Empty placeholder so Surefire late-replaces @{argLine} (JaCoCo-compatible). -->
+        <argLine></argLine>
     </properties>
 
     <dependencyManagement>
@@ -202,11 +204,11 @@
             <version>2.18.0</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
+        <!-- Mockito >= 5.14.0 required for Premain-Class / JDK 21 javaagent. -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.13.0</version>
+            <version>5.17.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -249,11 +251,29 @@
                 </configuration>
             </plugin>
 
+            <!-- Expose mockito-core JAR path as ${org.mockito:mockito-core:jar} before Surefire. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Плагин для запуска unit-тестов -->
+            <!-- JDK 21+: attach Mockito as javaagent so Inline MockMaker works without dynamic attach. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+                <configuration>
+                    <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>
