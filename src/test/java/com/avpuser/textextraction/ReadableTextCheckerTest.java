@@ -468,5 +468,29 @@ class ReadableTextCheckerTest {
         String text = "Na+ 140 mmol/L; K+ 4.1 mmol/L; Ca²⁺ 2.28 mmol/L; pH 7.40; HR 72 bpm;";
         assertTrue(ReadableTextChecker.looksLikeReadableText(text));
     }
+
+    // ========== looksLikeCleanSparseText ==========
+
+    @Test
+    void looksLikeCleanSparseText_ShouldReturnTrue_ForShortMedicalHeader() {
+        assertTrue(ReadableTextChecker.looksLikeCleanSparseText("CRP 0.12"));
+        assertTrue(ReadableTextChecker.looksLikeCleanSparseText("Page 2"));
+        assertTrue(ReadableTextChecker.looksLikeCleanSparseText("Short text"));
+    }
+
+    @Test
+    void looksLikeCleanSparseText_ShouldReturnFalse_ForDigitOnlyTimestamp() {
+        assertFalse(ReadableTextChecker.looksLikeCleanSparseText("2026-10-21 14:41:24"));
+        assertFalse(ReadableTextChecker.looksLikeCleanSparseText("12.05.2024 08:30"));
+    }
+
+    @Test
+    void looksLikeCleanSparseText_ShouldReturnFalse_ForBlankAndGibberish() {
+        assertFalse(ReadableTextChecker.looksLikeCleanSparseText(null));
+        assertFalse(ReadableTextChecker.looksLikeCleanSparseText("   "));
+        // Controls in the middle — String.trim() would strip leading/trailing C0 controls.
+        assertFalse(ReadableTextChecker.looksLikeCleanSparseText("ab\u0000\u0001\u0002\u0003\u0004cdef"));
+        assertFalse(ReadableTextChecker.looksLikeCleanSparseText("abc\uE000\uE001\uE002\uE003"));
+    }
 }
 

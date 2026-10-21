@@ -12,6 +12,16 @@ import org.apache.pdfbox.text.PDFTextStripper;
 
 import java.io.IOException;
 
+/**
+ * Font / ToUnicode diagnostics helper.
+ * <p>
+ * Native vs OCR decisions are made by {@link PdfTextExtractor} from per-page extracted text quality,
+ * not from font metadata alone. A single well-mapped font (e.g. footer timestamps) must not force
+ * OCR when page text is readable, and must not prevent OCR when text is damaged.
+ *
+ * @deprecated Prefer {@link PdfTextExtractor} readability gate. Kept for optional diagnostics.
+ */
+@Deprecated
 public class PdfFontChecker {
 
     public static boolean pdfHasNoUnicodeMappingFonts(PDDocument document) {

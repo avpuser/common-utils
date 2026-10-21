@@ -24,6 +24,9 @@ public class ReadableTextChecker {
     private static final int    MAX_RUN_LENGTH          = 12;
     private static final double MAX_TOP_CHAR_SHARE      = 0.30;
 
+    /** Minimum letters for a short page fragment that is not digit-/symbol-only noise. */
+    private static final int    MIN_LETTERS_FOR_SPARSE  = 3;
+
     public static boolean looksLikeReadableText(String text) {
         if (StringUtils.isBlank(text)) return false;
 
@@ -35,6 +38,29 @@ public class ReadableTextChecker {
         return lang.isPresent()
                 && s.useful >= MIN_USEFUL_FOR_READABLE
                 && s.usefulRatio() >= MIN_USEFUL_RATIO;
+    }
+
+    /**
+     * Short but clean text: not enough for reliable language detection, yet not gibberish.
+     * Accepts sparse PDF pages (headers, footers, a few medical abbreviations) while rejecting
+     * digit-only timestamps and symbol noise that often come from broken text layers.
+     */
+    public static boolean looksLikeCleanSparseText(String text) {
+        if (StringUtils.isBlank(text)) return false;
+
+        Stats s = analyze(text);
+        if (s.total == 0) return false;
+        if (s.letters < MIN_LETTERS_FOR_SPARSE) return false;
+        if (s.usefulRatio() < MIN_USEFUL_RATIO_OK) return false;
+        // Soft noise checks only — do not require full MIN_USEFUL_FOR_OK / language detection.
+        if (s.nonPrintable > MAX_NONPRINTABLE_FOR_OK) return false;
+        if (s.controlRatio() > MAX_CONTROL_PCT) return false;
+        if (s.printableRatio() < MIN_PRINTABLE_RATIO) return false;
+        if (s.allowedBlockRatio() < MIN_ALLOWED_BLOCK_RATIO) return false;
+        if (s.maxRun >= MAX_RUN_LENGTH) return false;
+        // topCharShare is unreliable on very short strings (e.g. "Short text" has repeated 't').
+        if (s.total >= MIN_TOTAL_LEN && s.topCharShare() > MAX_TOP_CHAR_SHARE) return false;
+        return true;
     }
 
     public static boolean looksLikeGibberish(String text) {
@@ -92,6 +118,7 @@ public class ReadableTextChecker {
 
             // letters/digits
             if (Character.isLetterOrDigit(cp)) st.useful++;
+            if (Character.isLetter(cp)) st.letters++;
 
             // noise
             if (cp == 0xFFFD) {
@@ -131,6 +158,7 @@ public class ReadableTextChecker {
     private static final class Stats {
         int total;
         int useful;
+        int letters;
         int printable;
         int nonPrintable;
         int controls;
