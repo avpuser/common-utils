@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -66,6 +67,12 @@ public class PdfTextExtractor {
      * Image display area (from CTM) relative to page area — at/above this ⇒ full-page scan.
      */
     private static final float MIN_PAGE_IMAGE_COVER_RATIO = 0.45f;
+
+    /**
+     * Images smaller than this fraction of the page are treated as logos/stamps and
+     * excluded from the multi-image union cover (avoids OCR on branded text pages).
+     */
+    private static final float MIN_SIGNIFICANT_IMAGE_RATIO = 0.08f;
 
     /**
      * When a large raster covers most of the page, short native text is usually only a
@@ -177,7 +184,7 @@ public class PdfTextExtractor {
         }
 
         if (ReadableTextChecker.looksLikeCleanSparseText(pageText)) {
-            if (stats.contentStreamBytes >= MIN_CONTENT_BYTES_SPARSE_MISMATCH) {
+            if (stats.effectiveContentBytes() >= MIN_CONTENT_BYTES_SPARSE_MISMATCH) {
                 return PageVerdict.UNREADABLE;
             }
             return PageVerdict.SPARSE_OK;
@@ -202,13 +209,14 @@ public class PdfTextExtractor {
             return PageVerdict.UNREADABLE;
         }
 
-        if (pageHasFonts(page) && stats.contentStreamBytes >= MIN_CONTENT_BYTES_WITH_FONTS) {
+        if (pageHasFonts(page) && stats.effectiveContentBytes() >= MIN_CONTENT_BYTES_WITH_FONTS) {
             return PageVerdict.UNREADABLE;
         }
 
         // Substantial vector content without explaining images (decorative stamp pages often
         // have a small image + short stream; keep those as EMPTY via the image exemption).
-        if (stats.contentStreamBytes >= MIN_CONTENT_BYTES_SIGNIFICANT && !pageHasImageXObject(page)) {
+        // effectiveContentBytes includes drawn Form XObject streams (not unused resources).
+        if (stats.effectiveContentBytes() >= MIN_CONTENT_BYTES_SIGNIFICANT && !pageHasImageXObject(page)) {
             return PageVerdict.UNREADABLE;
         }
 
@@ -241,7 +249,7 @@ public class PdfTextExtractor {
             return "short_native_text_with_full_page_raster";
         }
         if (ReadableTextChecker.looksLikeCleanSparseText(pageText)
-                && stats.contentStreamBytes >= MIN_CONTENT_BYTES_SPARSE_MISMATCH) {
+                && stats.effectiveContentBytes() >= MIN_CONTENT_BYTES_SPARSE_MISMATCH) {
             return "sparse_text_mismatched_to_page_content";
         }
         if (ReadableTextChecker.looksLikeGibberish(pageText)) {
@@ -293,60 +301,149 @@ public class PdfTextExtractor {
     }
 
     /**
-     * One pass over the page content stream: counts glyphs with/without ToUnicode and
-     * measures image display area via the current transformation matrix (not pixel size).
+     * One pass over the page content stream: counts glyphs with/without ToUnicode,
+     * measures image display coverage (max + union of significant images), and
+     * accumulates content-stream bytes of actually drawn Form XObjects.
      */
     static final class PageContentStats {
         final int glyphCount;
         final int unmappedGlyphCount;
         final float maxImageDisplayArea;
+        /** Union area of images each covering ≥ {@link #MIN_SIGNIFICANT_IMAGE_RATIO} of the page. */
+        final float unionSignificantImageArea;
         final float pageArea;
-        /** Page content stream size (not including nested Form streams). Measured once per page. */
+        /** Page content stream size only (not Form streams). */
         final int contentStreamBytes;
+        /** Sum of content-stream sizes of Form XObjects that were actually painted (per paint). */
+        final long drawnFormContentBytes;
 
         private PageContentStats(int glyphCount, int unmappedGlyphCount,
-                                 float maxImageDisplayArea, float pageArea, int contentStreamBytes) {
+                                 float maxImageDisplayArea, float unionSignificantImageArea,
+                                 float pageArea, int contentStreamBytes, long drawnFormContentBytes) {
             this.glyphCount = glyphCount;
             this.unmappedGlyphCount = unmappedGlyphCount;
             this.maxImageDisplayArea = maxImageDisplayArea;
+            this.unionSignificantImageArea = unionSignificantImageArea;
             this.pageArea = pageArea;
             this.contentStreamBytes = contentStreamBytes;
+            this.drawnFormContentBytes = drawnFormContentBytes;
         }
 
         static PageContentStats analyze(PDPage page) throws IOException {
             PDRectangle box = page.getCropBox() != null ? page.getCropBox() : page.getMediaBox();
             float pageArea = box == null ? 0f : Math.max(1f, box.getWidth() * box.getHeight());
             int contentStreamBytes = contentStreamSize(page);
-            ContentProbe probe = new ContentProbe(page);
+            ContentProbe probe = new ContentProbe(page, box, pageArea);
             probe.processPage(page);
             return new PageContentStats(
                     probe.glyphCount,
                     probe.unmappedGlyphCount,
                     probe.maxImageDisplayArea,
+                    axisAlignedRectUnionArea(probe.significantImageRects),
                     pageArea,
-                    contentStreamBytes);
+                    contentStreamBytes,
+                    probe.drawnFormContentBytes);
         }
 
         double unmappedGlyphRatio() {
             return glyphCount == 0 ? 0.0 : (double) unmappedGlyphCount / glyphCount;
         }
 
+        long effectiveContentBytes() {
+            return (long) contentStreamBytes + drawnFormContentBytes;
+        }
+
         boolean hasFullPageRaster() {
-            return pageArea > 0f && (maxImageDisplayArea / pageArea) >= MIN_PAGE_IMAGE_COVER_RATIO;
+            if (pageArea <= 0f) {
+                return false;
+            }
+            if ((maxImageDisplayArea / pageArea) >= MIN_PAGE_IMAGE_COVER_RATIO) {
+                return true;
+            }
+            return (unionSignificantImageArea / pageArea) >= MIN_PAGE_IMAGE_COVER_RATIO;
         }
     }
 
     /**
-     * Lightweight content-stream probe. Does not render; only observes glyphs and image CTMs.
-     * Form XObjects are processed by PDFGraphicsStreamEngine's DrawObject recursively.
+     * Axis-aligned rectangle union area via vertical sweep (no double-counting of overlaps).
+     * Each rect is {x0, y0, x1, y1} with x0 ≤ x1, y0 ≤ y1.
+     */
+    private static float axisAlignedRectUnionArea(List<float[]> rects) {
+        if (rects == null || rects.isEmpty()) {
+            return 0f;
+        }
+        List<Float> xs = new ArrayList<>(rects.size() * 2);
+        for (float[] r : rects) {
+            xs.add(r[0]);
+            xs.add(r[2]);
+        }
+        Collections.sort(xs);
+        float area = 0f;
+        for (int i = 0; i < xs.size() - 1; i++) {
+            float x0 = xs.get(i);
+            float x1 = xs.get(i + 1);
+            if (x1 <= x0) {
+                continue;
+            }
+            List<float[]> yIntervals = new ArrayList<>();
+            for (float[] r : rects) {
+                if (r[0] < x1 && r[2] > x0) {
+                    yIntervals.add(new float[]{r[1], r[3]});
+                }
+            }
+            area += (x1 - x0) * unionIntervalLength(yIntervals);
+        }
+        return area;
+    }
+
+    private static float unionIntervalLength(List<float[]> intervals) {
+        if (intervals.isEmpty()) {
+            return 0f;
+        }
+        intervals.sort((a, b) -> Float.compare(a[0], b[0]));
+        float total = 0f;
+        float cur0 = intervals.get(0)[0];
+        float cur1 = intervals.get(0)[1];
+        for (int i = 1; i < intervals.size(); i++) {
+            float[] iv = intervals.get(i);
+            if (iv[0] <= cur1) {
+                cur1 = Math.max(cur1, iv[1]);
+            } else {
+                total += cur1 - cur0;
+                cur0 = iv[0];
+                cur1 = iv[1];
+            }
+        }
+        total += cur1 - cur0;
+        return Math.max(0f, total);
+    }
+
+    private static long formContentStreamSize(PDFormXObject form) throws IOException {
+        try (InputStream in = form.getContents()) {
+            if (in == null) {
+                return 0L;
+            }
+            return in.readAllBytes().length;
+        }
+    }
+
+    /**
+     * Lightweight content-stream probe. Does not render; only observes glyphs, image CTMs,
+     * and content-stream sizes of painted Form XObjects (via {@link #showForm}).
      */
     private static final class ContentProbe extends PDFGraphicsStreamEngine {
+        private final PDRectangle pageBox;
+        private final float pageArea;
         private int glyphCount;
         private int unmappedGlyphCount;
         private float maxImageDisplayArea;
+        private long drawnFormContentBytes;
+        private final List<float[]> significantImageRects = new ArrayList<>();
 
-        private ContentProbe(PDPage page) {
+        private ContentProbe(PDPage page, PDRectangle pageBox, float pageArea) {
             super(page);
+            this.pageBox = pageBox;
+            this.pageArea = pageArea;
         }
 
         @Override
@@ -374,12 +471,55 @@ public class PdfTextExtractor {
         }
 
         @Override
+        public void showForm(PDFormXObject form) throws IOException {
+            // Count only Forms that are actually painted (including nested Forms via recursion).
+            drawnFormContentBytes += formContentStreamSize(form);
+            super.showForm(form);
+        }
+
+        @Override
         public void drawImage(PDImage image) {
             // Image is painted into the unit square transformed by CTM → display size in page space.
             Matrix ctm = getGraphicsState().getCurrentTransformationMatrix();
             float width = Math.abs(ctm.getScalingFactorX());
             float height = Math.abs(ctm.getScalingFactorY());
             maxImageDisplayArea = Math.max(maxImageDisplayArea, width * height);
+
+            float[] clipped = clippedImageAabb(ctm, pageBox);
+            if (clipped == null || pageArea <= 0f) {
+                return;
+            }
+            float clippedArea = (clipped[2] - clipped[0]) * (clipped[3] - clipped[1]);
+            if (clippedArea / pageArea >= MIN_SIGNIFICANT_IMAGE_RATIO) {
+                significantImageRects.add(clipped);
+            }
+        }
+
+        /**
+         * Axis-aligned bounding box of the CTM-mapped unit square, clipped to the page crop box.
+         * Returns null if the intersection is empty.
+         */
+        private static float[] clippedImageAabb(Matrix ctm, PDRectangle pageBox) {
+            if (pageBox == null || ctm == null) {
+                return null;
+            }
+            Point2D.Float p0 = ctm.transformPoint(0, 0);
+            Point2D.Float p1 = ctm.transformPoint(1, 0);
+            Point2D.Float p2 = ctm.transformPoint(1, 1);
+            Point2D.Float p3 = ctm.transformPoint(0, 1);
+            float minX = Math.min(Math.min(p0.x, p1.x), Math.min(p2.x, p3.x));
+            float maxX = Math.max(Math.max(p0.x, p1.x), Math.max(p2.x, p3.x));
+            float minY = Math.min(Math.min(p0.y, p1.y), Math.min(p2.y, p3.y));
+            float maxY = Math.max(Math.max(p0.y, p1.y), Math.max(p2.y, p3.y));
+
+            float clipMinX = Math.max(minX, pageBox.getLowerLeftX());
+            float clipMaxX = Math.min(maxX, pageBox.getUpperRightX());
+            float clipMinY = Math.max(minY, pageBox.getLowerLeftY());
+            float clipMaxY = Math.min(maxY, pageBox.getUpperRightY());
+            if (clipMaxX <= clipMinX || clipMaxY <= clipMinY) {
+                return null;
+            }
+            return new float[]{clipMinX, clipMinY, clipMaxX, clipMaxY};
         }
 
         @Override
