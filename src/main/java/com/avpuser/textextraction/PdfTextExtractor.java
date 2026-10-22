@@ -67,6 +67,13 @@ public class PdfTextExtractor {
      */
     private static final float MIN_PAGE_IMAGE_COVER_RATIO = 0.45f;
 
+    /**
+     * When a large raster covers most of the page, short native text is usually only a
+     * header/footer (e.g. ECG export with chart as image). Prefer OCR unless enough
+     * native text is present to explain the page (embedded OCR text layer, etc.).
+     */
+    private static final int MIN_NATIVE_TEXT_WITH_FULL_PAGE_RASTER = 400;
+
     private enum PageVerdict {
         READABLE,
         SPARSE_OK,
@@ -159,6 +166,12 @@ public class PdfTextExtractor {
             return PageVerdict.UNREADABLE;
         }
 
+        // Large raster + short native remnant (header/patient line) ⇒ OCR for chart/table content.
+        // Must run before looksLikeReadableText — short clean Cyrillic headers pass that check.
+        if (stats.hasFullPageRaster() && nativeTextLength(pageText) < MIN_NATIVE_TEXT_WITH_FULL_PAGE_RASTER) {
+            return PageVerdict.UNREADABLE;
+        }
+
         if (ReadableTextChecker.looksLikeReadableText(pageText)) {
             return PageVerdict.READABLE;
         }
@@ -171,6 +184,10 @@ public class PdfTextExtractor {
         }
 
         return PageVerdict.UNREADABLE;
+    }
+
+    private static int nativeTextLength(String pageText) {
+        return pageText == null ? 0 : pageText.trim().length();
     }
 
     /**
@@ -219,6 +236,9 @@ public class PdfTextExtractor {
         }
         if (hasSignificantUnmappedGlyphs(stats)) {
             return "unmapped_glyphs_ratio_high";
+        }
+        if (stats.hasFullPageRaster() && nativeTextLength(pageText) < MIN_NATIVE_TEXT_WITH_FULL_PAGE_RASTER) {
+            return "short_native_text_with_full_page_raster";
         }
         if (ReadableTextChecker.looksLikeCleanSparseText(pageText)
                 && stats.contentStreamBytes >= MIN_CONTENT_BYTES_SPARSE_MISMATCH) {
