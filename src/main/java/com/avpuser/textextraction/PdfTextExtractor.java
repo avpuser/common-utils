@@ -7,6 +7,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
@@ -609,6 +610,22 @@ public class PdfTextExtractor {
         } catch (IOException e) {
             logger.error("Failed to load PDF from byte array", e);
             return Optional.empty();
+        }
+    }
+
+    /**
+     * Returns true only when the PDF cannot be opened without a user password.
+     * Encrypted PDFs that open with an empty password (owner-password only) are not considered protected.
+     * Other load failures (corrupted/unparseable PDF) return false so callers keep their existing behaviour.
+     */
+    public static boolean requiresPassword(byte[] pdfBytes) {
+        try (PDDocument ignored = Loader.loadPDF(pdfBytes)) {
+            return false;
+        } catch (InvalidPasswordException e) {
+            return true;
+        } catch (IOException e) {
+            logger.debug("PDF could not be loaded during password check: {}", e.getClass().getSimpleName());
+            return false;
         }
     }
 
