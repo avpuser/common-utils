@@ -24,6 +24,7 @@ import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 @MockTest
@@ -581,6 +583,83 @@ class CommonDaoTest {
 
         // Assert
         assertEquals(2, counter.get());
+        verify(cursor).close();
+    }
+
+    @Test
+    void forEachWithBsonFilterAndSort_streamsWithoutMaterializingAndClosesCursor() {
+        TestEntity entity1 = new TestEntity("id1", "Name1");
+        TestEntity entity2 = new TestEntity("id2", "Name2");
+        Bson filter = mock(Bson.class);
+        Bson sort = mock(Bson.class);
+
+        MongoCursor<TestEntity> cursor = mock(MongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, true, false);
+        when(cursor.next()).thenReturn(entity1, entity2);
+
+        FindIterable<TestEntity> findIterable = mock(FindIterable.class);
+        when(mongoCollection.find(filter)).thenReturn(findIterable);
+        when(findIterable.batchSize(50)).thenReturn(findIterable);
+        when(findIterable.sort(sort)).thenReturn(findIterable);
+        when(findIterable.limit(10)).thenReturn(findIterable);
+        when(findIterable.iterator()).thenReturn(cursor);
+
+        AtomicInteger peak = new AtomicInteger();
+        AtomicInteger current = new AtomicInteger();
+        List<String> seen = new ArrayList<>();
+        dao.forEachWithBsonFilterAndSort(filter, sort, 10, 50, entity -> {
+            current.incrementAndGet();
+            peak.set(Math.max(peak.get(), current.get()));
+            seen.add(entity.getId());
+            current.decrementAndGet();
+        });
+
+        assertEquals(List.of("id1", "id2"), seen);
+        assertEquals(1, peak.get());
+        verify(findIterable).batchSize(50);
+        verify(findIterable).sort(sort);
+        verify(findIterable).limit(10);
+        verify(cursor).close();
+    }
+
+    @Test
+    void forEachWithBsonFilterAndSort_nullLimit_doesNotApplyMongoLimit() {
+        Bson filter = mock(Bson.class);
+        MongoCursor<TestEntity> cursor = mock(MongoCursor.class);
+        when(cursor.hasNext()).thenReturn(false);
+
+        FindIterable<TestEntity> findIterable = mock(FindIterable.class);
+        when(mongoCollection.find(filter)).thenReturn(findIterable);
+        when(findIterable.batchSize(25)).thenReturn(findIterable);
+        when(findIterable.iterator()).thenReturn(cursor);
+
+        dao.forEachWithBsonFilterAndSort(filter, null, null, 25, entity -> fail("no docs"));
+
+        verify(findIterable, never()).limit(anyInt());
+        verify(findIterable, never()).sort(any());
+        verify(cursor).close();
+    }
+
+    @Test
+    void forEachWithBsonFilterAndSort_closesCursorWhenConsumerThrows() {
+        TestEntity entity = new TestEntity("id1", "Name1");
+        Bson filter = mock(Bson.class);
+
+        MongoCursor<TestEntity> cursor = mock(MongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true);
+        when(cursor.next()).thenReturn(entity);
+
+        FindIterable<TestEntity> findIterable = mock(FindIterable.class);
+        when(mongoCollection.find(filter)).thenReturn(findIterable);
+        when(findIterable.batchSize(10)).thenReturn(findIterable);
+        when(findIterable.iterator()).thenReturn(cursor);
+
+        RuntimeException boom = new RuntimeException("consumer failed");
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+                () -> dao.forEachWithBsonFilterAndSort(filter, null, null, 10, e -> {
+                    throw boom;
+                }));
+        assertSame(boom, thrown);
         verify(cursor).close();
     }
 

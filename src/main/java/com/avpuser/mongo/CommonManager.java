@@ -112,6 +112,19 @@ public abstract class CommonManager<T extends DbEntity> {
         return dao.findWithBsonFilterAndSort(limit, skip, filter, sortFields);
     }
 
+    /**
+     * Streams matching documents via a MongoDB cursor without materializing the full result set.
+     *
+     * @see CommonDao#forEachWithBsonFilterAndSort(Bson, Bson, Integer, int, Consumer)
+     */
+    public void forEachWithBsonFilterAndSort(Bson filter,
+                                             Bson sort,
+                                             Integer limit,
+                                             int batchSize,
+                                             Consumer<T> consumer) {
+        dao.forEachWithBsonFilterAndSort(filter, sort, limit, batchSize, consumer);
+    }
+
     public long countWithBsonFilter(org.bson.conversions.Bson filter) {
         return dao.countWithBsonFilter(filter);
     }

@@ -501,6 +501,52 @@ public class CommonDao<T extends DbEntity> {
     }
 
     /**
+     * Streams matching documents via a MongoDB cursor without materializing the full result set.
+     * At most {@code batchSize} documents are buffered by the driver at a time.
+     * <p>
+     * The cursor is always closed (try-with-resources), including when {@code consumer} throws.
+     * Consumer exceptions propagate after the cursor is closed; long runs may log
+     * {@code LONG QUERY} via {@link #executeMeasuredVoidQuery} the same way as {@link #forEachEntity}.
+     * Prefer indexed filters/sorts for admin exports and similar bulk reads.
+     * </p>
+     *
+     * @param filter    Bson filter; null treated as empty
+     * @param sort      Bson sort; null means natural order
+     * @param limit     max documents to consume; null or &lt;= 0 means no limit
+     * @param batchSize MongoDB cursor batch size; must be &gt; 0
+     * @param consumer  called once per document; must not retain references across calls if memory matters
+     */
+    public void forEachWithBsonFilterAndSort(Bson filter,
+                                             Bson sort,
+                                             Integer limit,
+                                             int batchSize,
+                                             Consumer<T> consumer) {
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException("batchSize must be > 0");
+        }
+        if (consumer == null) {
+            throw new IllegalArgumentException("consumer must not be null");
+        }
+        Bson finalFilter = (filter != null) ? filter : Filters.empty();
+        String details = String.format("limit=%s, batchSize=%d, filter=%s, sort=%s",
+                limit, batchSize, finalFilter, sort);
+        executeMeasuredVoidQuery("forEachWithBsonFilterAndSort", details, () -> {
+            var query = mongoCollection.find(finalFilter).batchSize(batchSize);
+            if (sort != null) {
+                query = query.sort(sort);
+            }
+            if (limit != null && limit > 0) {
+                query = query.limit(limit);
+            }
+            try (MongoCursor<T> cursor = query.iterator()) {
+                while (cursor.hasNext()) {
+                    consumer.accept(cursor.next());
+                }
+            }
+        });
+    }
+
+    /**
      * Counts documents matching the provided Bson filter.
      *
      * @param filter Bson filter for querying. Can be null or Filters.empty().
