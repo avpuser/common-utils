@@ -8,7 +8,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -84,7 +83,7 @@ public class TelegramBotApi {
         message = TelegramMessageSanitizer.sanitizeMessage(message, parseMode);
         HttpEntity entity = TelegramHttpUtils.buildHttpEntityForEditMessage(messageId, message, chatId, parseMode);
 
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
+        try (CloseableHttpClient client = TelegramHttpUtils.createHttpClient()) {
             HttpPost post = new HttpPost(url);
 
             post.setEntity(entity);
@@ -130,7 +129,7 @@ public class TelegramBotApi {
 
         HttpEntity entity = TelegramHttpUtils.buildHttpEntityForSendMessage(message, chatId, parseMode);
 
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
+        try (CloseableHttpClient client = TelegramHttpUtils.createHttpClient()) {
             HttpPost post = new HttpPost(url);
             post.setEntity(entity);
             try (CloseableHttpResponse response = client.execute(post)) {
