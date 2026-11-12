@@ -31,29 +31,17 @@ public class TelegramHttpUtils {
 
     private static final Logger logger = LogManager.getLogger(TelegramHttpUtils.class);
 
-    static final int CONNECT_TIMEOUT_MS = 1_000;
-    static final int CONNECTION_REQUEST_TIMEOUT_MS = 1_000;
-    static final int TEXT_SOCKET_TIMEOUT_MS = 3_000;
-    static final int AUDIO_SOCKET_TIMEOUT_MS = 60_000;
+    static final int CONNECT_TIMEOUT_MS = 5_000;
+    static final int SOCKET_TIMEOUT_MS = 10_000;
+    static final int CONNECTION_REQUEST_TIMEOUT_MS = 3_000;
 
     /**
      * HTTP client for text/metadata Telegram Bot API calls.
      */
     public static CloseableHttpClient createHttpClient() {
-        return createHttpClient(TEXT_SOCKET_TIMEOUT_MS);
-    }
-
-    /**
-     * HTTP client for audio uploads (same connect timeouts, longer socket timeout).
-     */
-    public static CloseableHttpClient createAudioHttpClient() {
-        return createHttpClient(AUDIO_SOCKET_TIMEOUT_MS);
-    }
-
-    private static CloseableHttpClient createHttpClient(int socketTimeoutMs) {
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(CONNECT_TIMEOUT_MS)
-                .setSocketTimeout(socketTimeoutMs)
+                .setSocketTimeout(SOCKET_TIMEOUT_MS)
                 .setConnectionRequestTimeout(CONNECTION_REQUEST_TIMEOUT_MS)
                 .build();
         return HttpClients.custom()
@@ -148,7 +136,7 @@ public class TelegramHttpUtils {
     }
 
     public static String sendAudioAndGetFileId(HttpEntity entity, String sendAudioUrl) {
-        try (CloseableHttpClient client = createAudioHttpClient()) {
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpPost post = new HttpPost(sendAudioUrl);
             post.setEntity(entity);
             try (CloseableHttpResponse response = client.execute(post)) {
