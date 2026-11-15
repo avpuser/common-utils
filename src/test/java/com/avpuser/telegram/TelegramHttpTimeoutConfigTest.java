@@ -16,8 +16,8 @@ class TelegramHttpTimeoutConfigTest {
 
     @Test
     void timeoutConstants() {
-        assertEquals(5_000, TelegramHttpUtils.CONNECT_TIMEOUT_MS);
-        assertEquals(10_000, TelegramHttpUtils.SOCKET_TIMEOUT_MS);
+        assertEquals(10_000, TelegramHttpUtils.CONNECT_TIMEOUT_MS);
+        assertEquals(15_000, TelegramHttpUtils.SOCKET_TIMEOUT_MS);
         assertEquals(3_000, TelegramHttpUtils.CONNECTION_REQUEST_TIMEOUT_MS);
     }
 

@@ -31,8 +31,8 @@ public class TelegramHttpUtils {
 
     private static final Logger logger = LogManager.getLogger(TelegramHttpUtils.class);
 
-    static final int CONNECT_TIMEOUT_MS = 5_000;
-    static final int SOCKET_TIMEOUT_MS = 10_000;
+    static final int CONNECT_TIMEOUT_MS = 10_000;
+    static final int SOCKET_TIMEOUT_MS = 15_000;
     static final int CONNECTION_REQUEST_TIMEOUT_MS = 3_000;
 
     /**
