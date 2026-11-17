@@ -37,13 +37,18 @@ public class UrlUtils {
             Map.entry(".rgb", ".rgb")
     );
 
+    /** Default download: connect 5s, read 10s. Prefer the overload for longer transfers. */
     public static byte[] download(String urlString) {
+        return download(urlString, 5_000, 10_000);
+    }
+
+    public static byte[] download(String urlString, int connectTimeoutMs, int readTimeoutMs) {
         try {
             URL url = new URL(urlString);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(10000);
+            connection.setConnectTimeout(connectTimeoutMs);
+            connection.setReadTimeout(readTimeoutMs);
             connection.setRequestMethod("GET");
 
             int statusCode = connection.getResponseCode();
