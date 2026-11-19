@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public class TelegramHttpUtils {
@@ -32,11 +33,14 @@ public class TelegramHttpUtils {
     private static final Logger logger = LogManager.getLogger(TelegramHttpUtils.class);
 
     static final int CONNECT_TIMEOUT_MS = 10_000;
-    static final int SOCKET_TIMEOUT_MS = 15_000;
+    /** Read / SO_TIMEOUT for waiting on response data from Telegram. */
+    static final int SOCKET_TIMEOUT_MS = 30_000;
     static final int CONNECTION_REQUEST_TIMEOUT_MS = 3_000;
 
     /**
      * HTTP client for text/metadata Telegram Bot API calls.
+     * Retries are disabled: a read timeout after sendMessage leaves delivery ambiguous,
+     * so automatic retry could create duplicate messages.
      */
     public static CloseableHttpClient createHttpClient() {
         RequestConfig requestConfig = RequestConfig.custom()
@@ -48,6 +52,36 @@ public class TelegramHttpUtils {
                 .setDefaultRequestConfig(requestConfig)
                 .disableAutomaticRetries()
                 .build();
+    }
+
+    /**
+     * Classifies HTTP/network failures for logs (connect vs read vs pool vs other).
+     */
+    static String classifyHttpError(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof org.apache.http.conn.ConnectionPoolTimeoutException) {
+                return "connection_request_timeout";
+            }
+            if (current instanceof org.apache.http.conn.ConnectTimeoutException) {
+                return "connect_timeout";
+            }
+            if (current instanceof java.net.SocketTimeoutException) {
+                String message = current.getMessage();
+                if (message != null && message.toLowerCase(Locale.ROOT).contains("connect")) {
+                    return "connect_timeout";
+                }
+                return "read_timeout";
+            }
+            if (current instanceof java.net.ConnectException) {
+                return "connect_failed";
+            }
+            if (current instanceof java.net.UnknownHostException) {
+                return "unknown_host";
+            }
+            current = current.getCause();
+        }
+        return throwable != null ? throwable.getClass().getSimpleName() : "unknown";
     }
 
     public static HttpEntity buildHttpEntityForEditMessage(long messageId, String message, String chatId, ParseMode parseMode) {

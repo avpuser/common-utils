@@ -129,6 +129,7 @@ public class TelegramBotApi {
 
         HttpEntity entity = TelegramHttpUtils.buildHttpEntityForSendMessage(message, chatId, parseMode);
 
+        long startedAtNanos = System.nanoTime();
         try (CloseableHttpClient client = TelegramHttpUtils.createHttpClient()) {
             HttpPost post = new HttpPost(url);
             post.setEntity(entity);
@@ -146,7 +147,12 @@ public class TelegramBotApi {
                 return messageId;
             }
         } catch (Exception e) {
-            logger.error("Telegram sendMessage failed: {}", LogSanitizerUtils.sanitizeExceptionMessage(e.getMessage()), e);
+            long durationMs = Duration.ofNanos(System.nanoTime() - startedAtNanos).toMillis();
+            logger.error("Telegram sendMessage failed: durationMs={}, errorType={}, message={}",
+                    durationMs,
+                    TelegramHttpUtils.classifyHttpError(e),
+                    LogSanitizerUtils.sanitizeExceptionMessage(e.getMessage()),
+                    e);
             throw new RuntimeException(e);
         }
     }
